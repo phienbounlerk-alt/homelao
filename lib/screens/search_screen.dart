@@ -17,12 +17,12 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _activeCategory;
 
   static const _categories = [
-    (Icons.apartment_rounded, 'Apartment'),
-    (Icons.bed_rounded, 'Room'),
-    (Icons.house_rounded, 'House'),
-    (Icons.location_city_rounded, 'Condo'),
-    (Icons.holiday_village_rounded, 'Villa'),
-    (Icons.chair_rounded, 'Office'),
+    (Icons.apartment_rounded, 'ອາພາດເມັນ'),
+    (Icons.bed_rounded, 'ຫ້ອງເຊົ່າ'),
+    (Icons.house_rounded, 'ເຮືອນ'),
+    (Icons.location_city_rounded, 'ຄອນໂດ'),
+    (Icons.holiday_village_rounded, 'ວິນລາ'),
+    (Icons.chair_rounded, 'ຫ້ອງການ'),
   ];
 
   List<Property> get _filtered {
@@ -103,8 +103,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               autofocus: true,
                               onChanged: (v) => setState(() => _query = v),
                               decoration: const InputDecoration(
-                                hintText:
-                                    'Search apartments, houses, condos...',
+                                hintText: 'ຄົ້ນຫາອາພາດເມັນ, ເຮືອນ, ຄອນໂດ...',
                                 hintStyle: TextStyle(
                                   fontSize: 13.5,
                                   color: AppColors.textSecondary,
@@ -197,7 +196,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 children: [
                   Text(
-                    '${results.length} properties found',
+                    'ພົບ ${results.length} ຊັບສິນ',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -221,7 +220,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'No properties found',
+                            'ບໍ່ພົບຊັບສິນ',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -230,7 +229,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Try a different search term',
+                            'ລອງຄົ້ນຫາຄຳອື່ນ',
                             style: TextStyle(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,

@@ -24,25 +24,25 @@ class _HomeScreenState extends State<HomeScreen> {
   int _navIndex = 0;
 
   static const _categories = [
-    (Icons.apartment_rounded, 'Apartment'),
-    (Icons.bed_rounded, 'Rental Room'),
-    (Icons.house_rounded, 'House'),
-    (Icons.location_city_rounded, 'Condo'),
-    (Icons.holiday_village_rounded, 'Villa'),
-    (Icons.chair_rounded, 'Office'),
-    (Icons.map_rounded, 'Land'),
-    (Icons.grid_view_rounded, 'More'),
+    (Icons.apartment_rounded, 'ອາພາດເມັນ'),
+    (Icons.bed_rounded, 'ຫ້ອງເຊົ່າ'),
+    (Icons.house_rounded, 'ເຮືອນ'),
+    (Icons.location_city_rounded, 'ຄອນໂດ'),
+    (Icons.holiday_village_rounded, 'ວິນລາ'),
+    (Icons.chair_rounded, 'ຫ້ອງການ'),
+    (Icons.map_rounded, 'ທີ່ດິນ'),
+    (Icons.grid_view_rounded, 'ອື່ນໆ'),
   ];
 
   static const _features = [
-    (Icons.verified_rounded, 'Verified\nListings'),
-    (Icons.near_me_rounded, 'Nearby\nRentals'),
-    (Icons.sell_rounded, 'Lowest\nPrices'),
-    (Icons.chat_bubble_rounded, 'Instant\nChat'),
-    (Icons.calendar_month_rounded, 'Book\nViewing'),
-    (Icons.calculate_rounded, 'Mortgage\nCalculator'),
-    (Icons.local_shipping_rounded, 'Move-in\nServices'),
-    (Icons.support_agent_rounded, '24/7\nSupport'),
+    (Icons.verified_rounded, 'ລາຍການ\nຢືນຢັນແລ້ວ'),
+    (Icons.near_me_rounded, 'ເຊົ່າ\nໃກ້ຄຽງ'),
+    (Icons.sell_rounded, 'ລາຄາ\nຖືກສຸດ'),
+    (Icons.chat_bubble_rounded, 'ແຊັດ\nທັນທີ'),
+    (Icons.calendar_month_rounded, 'ນັດ\nເບິ່ງບ້ານ'),
+    (Icons.calculate_rounded, 'ຄິດໄລ່\nເງິນກູ້'),
+    (Icons.local_shipping_rounded, 'ບໍລິການ\nຍ້າຍເຂົ້າ'),
+    (Icons.support_agent_rounded, 'ຊ່ວຍເຫຼືອ\n24 ຊມ.'),
   ];
 
   static final _recommended = [
@@ -50,8 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
       imageUrl:
           'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&q=80',
       priceLak: 1800000,
-      title: 'Modern Apartment Near Patuxay',
-      location: 'Chanthabouly, Vientiane',
+      title: 'ອາພາດເມັນທັນສະໄໝ ໃກ້ປະຕູໄຊ',
+      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
       beds: 2,
       baths: 1,
       areaSqm: 45,
@@ -62,8 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
       imageUrl:
           'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80',
       priceLak: 1200000,
-      title: 'Cozy Room for Rent Fully Furnished',
-      location: 'Sisattanak, Vientiane',
+      title: 'ຫ້ອງເຊົ່າອົບອຸ່ນ ພ້ອມເຟີນິເຈີຄົບຊຸດ',
+      location: 'ສີສັດຕະນາກ, ວຽງຈັນ',
       beds: 1,
       baths: 1,
       areaSqm: 25,
@@ -74,39 +74,114 @@ class _HomeScreenState extends State<HomeScreen> {
       imageUrl:
           'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&q=80',
       priceLak: 2500000,
-      title: 'Luxury Condo With City View',
-      location: 'Xaysettha, Vientiane',
+      title: 'ຄອນໂດຫລູຫລາ ວິວເມືອງ',
+      location: 'ໄຊເສດຖາ, ວຽງຈັນ',
       beds: 2,
       baths: 2,
       areaSqm: 60,
       rating: 4.9,
       views: 2103,
     ),
+    const Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&q=80',
+      priceLak: 3200000,
+      title: 'ເຮືອນກວ້າງຂວາງ ພ້ອມສວນ',
+      location: 'ສີໂຄດຕະບອງ, ວຽງຈັນ',
+      beds: 3,
+      baths: 2,
+      areaSqm: 120,
+      rating: 4.7,
+      views: 1560,
+    ),
+    const Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80',
+      priceLak: 4500000,
+      title: 'ວິນລາສ່ວນຕົວ ພ້ອມສະລອຍນ້ຳ',
+      location: 'ຫາດຊາຍຟອງ, ວຽງຈັນ',
+      beds: 4,
+      baths: 3,
+      areaSqm: 200,
+      rating: 4.9,
+      views: 980,
+    ),
+  ];
+
+  static const _newestListings = [
+    Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=400&q=80',
+      priceLak: 1600000,
+      title: 'ຫ້ອງນອນດຽວ ສ່ອງແສງດີ ໃກ້ຕະຫລາດເຊົ້າ',
+      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
+      beds: 1,
+      baths: 1,
+      areaSqm: 30,
+      rating: 4.5,
+      views: 320,
+    ),
+    Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80',
+      priceLak: 2100000,
+      title: 'ຄອນໂດໃໝ່ ພ້ອມເຟີນິເຈີ',
+      location: 'ສີສັດຕະນາກ, ວຽງຈັນ',
+      beds: 2,
+      baths: 1,
+      areaSqm: 50,
+      rating: 4.7,
+      views: 210,
+    ),
+    Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80',
+      priceLak: 2800000,
+      title: 'ທາວເຮົາສ໌ຕົກແຕ່ງໃໝ່',
+      location: 'ໄຊເສດຖາ, ວຽງຈັນ',
+      beds: 3,
+      baths: 2,
+      areaSqm: 90,
+      rating: 4.6,
+      views: 150,
+    ),
+    Property(
+      imageUrl:
+          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80',
+      priceLak: 1400000,
+      title: 'ສະຕູດິໂອທັນສະໄໝ ໃຈກາງເມືອງ',
+      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
+      beds: 1,
+      baths: 1,
+      areaSqm: 28,
+      rating: 4.4,
+      views: 95,
+    ),
   ];
 
   static const _trendingLocations = [
     (
-      'Vientiane',
+      'ວຽງຈັນ',
       'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=100&q=80',
     ),
     (
-      'Luang Prabang',
+      'ຫລວງພະບາງ',
       'https://images.unsplash.com/photo-1528181304800-259b08848526?w=100&q=80',
     ),
     (
-      'Pakse',
+      'ປາກເຊ',
       'https://images.unsplash.com/photo-1512100356356-de1b84283e18?w=100&q=80',
     ),
     (
-      'Savannakhet',
+      'ສະຫວັນນະເຂດ',
       'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=100&q=80',
     ),
     (
-      'Thakhek',
+      'ທ່າແຂກ',
       'https://images.unsplash.com/photo-1509644851169-2acc08aa25b5?w=100&q=80',
     ),
     (
-      'Vang Vieng',
+      'ວັງວຽງ',
       'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=100&q=80',
     ),
   ];
@@ -205,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -243,15 +318,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
-                  child: _SectionHeader(title: 'Recommended for you'),
+                  padding: const EdgeInsets.fromLTRB(20, 34, 20, 0),
+                  child: _SectionHeader(
+                    title: 'ແນະນຳສຳລັບທ່ານ',
+                    subtitle: 'ຊັບສິນທີ່ຄັດເລືອກຕາມຄວາມມັກຂອງທ່ານ.',
+                  ),
                 ),
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 348,
+                  height: 320,
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     scrollDirection: Axis.horizontal,
                     itemCount: _recommended.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 14),
@@ -262,22 +341,35 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
-                  child: Text(
-                    'Trending locations',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                  child: _SectionHeader(title: 'ລາຍການໃໝ່ລ່າສຸດ'),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 320,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _newestListings.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (context, i) =>
+                        PropertyCard(property: _newestListings[i]),
                   ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                  child: _SectionHeader(title: 'ທຳເລຍອດນິຍົມ'),
                 ),
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 56,
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                     scrollDirection: Axis.horizontal,
                     itemCount: _trendingLocations.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -290,21 +382,21 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 30, 20, 0),
                   child: _MapCard(),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
-                  child: _SectionHeader(title: 'Recently viewed'),
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                  child: _SectionHeader(title: 'ເບິ່ງລ່າສຸດ'),
                 ),
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 120,
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
                     scrollDirection: Axis.horizontal,
                     itemCount: _recentlyViewed.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -366,7 +458,7 @@ class _TopBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Current Location',
+              'ທີ່ຢູ່ປັດຈຸບັນ',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -377,7 +469,7 @@ class _TopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: const [
                 Text(
-                  'Vientiane, Laos',
+                  'ນະຄອນຫຼວງວຽງຈັນ, ລາວ',
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w700,
@@ -455,7 +547,7 @@ class _Brand extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         const Text(
-          'Find your perfect place to live',
+          'ຄົ້ນຫາທີ່ຢູ່ອາໄສທີ່ດີທີ່ສຸດສຳລັບທ່ານ',
           style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
         ),
       ],
@@ -528,7 +620,7 @@ class _SearchBar extends StatelessWidget {
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'Search apartments, houses, condos...',
+                        'ຄົ້ນຫາອາພາດເມັນ, ເຮືອນ, ຄອນໂດ...',
                         style: TextStyle(
                           fontSize: 13.5,
                           color: AppColors.textSecondary,
@@ -697,7 +789,7 @@ class _BannerSlide extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text(
-                'DISCOVER',
+                'ຄົ້ນພົບ',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 10.5,
@@ -708,7 +800,7 @@ class _BannerSlide extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Discover Your\nNext Home',
+              'ຄົ້ນພົບບ້ານ\nໃໝ່ຂອງທ່ານ',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -718,7 +810,7 @@ class _BannerSlide extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Thousands of verified properties\nacross Laos.',
+              'ຊັບສິນທີ່ຢືນຢັນແລ້ວຫລາຍພັນລາຍການ\nທົ່ວປະເທດລາວ.',
               style: TextStyle(color: Colors.white, fontSize: 13, height: 1.3),
             ),
             const SizedBox(height: 16),
@@ -732,7 +824,7 @@ class _BannerSlide extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   child: Text(
-                    'Explore Now',
+                    'ສຳຫຼວດເລີຍ',
                     style: TextStyle(
                       color: AppColors.primaryGreen,
                       fontSize: 13.5,
@@ -750,21 +842,40 @@ class _BannerSlide extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+  const _SectionHeader({required this.title, this.subtitle});
 
   final String title;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  subtitle!,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Material(
@@ -778,7 +889,7 @@ class _SectionHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'View all',
+                    'ເບິ່ງທັງໝົດ',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -833,7 +944,7 @@ class _MapCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Find properties near you',
+                  'ຄົ້ນຫາຊັບສິນໃກ້ທ່ານ',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -842,7 +953,7 @@ class _MapCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Explore listings on the map around your location.',
+                  'ສຳຫຼວດລາຍການເທິງແຜນທີ່ອ້ອມຂ້າງທ່ານ.',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: AppColors.textSecondary,
@@ -860,7 +971,7 @@ class _MapCard extends StatelessWidget {
                       padding: EdgeInsets.symmetric(vertical: 9),
                       child: Center(
                         child: Text(
-                          'Open Interactive Map',
+                          'ເປີດແຜນທີ່',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -991,7 +1102,7 @@ class _RecentThumb extends StatelessWidget {
                 ),
               ),
               child: Text(
-                '$price LAK',
+                '$price ກີບ',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 9.5,

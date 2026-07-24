@@ -22,41 +22,41 @@ class MessagesScreen extends StatelessWidget {
 
   static const _conversations = [
     _Conversation(
-      name: 'Somchai (Agent)',
+      name: 'ສົມໄຊ (ນາຍໜ້າ)',
       avatarUrl:
           'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
-      lastMessage: 'Yes, the apartment is still available for viewing.',
-      time: '9:41 AM',
+      lastMessage: 'ແມ່ນແລ້ວ, ອາພາດເມັນຍັງວ່າງໃຫ້ເບິ່ງຢູ່.',
+      time: '9:41',
       unread: 2,
     ),
     _Conversation(
-      name: 'Nok (Landlord)',
+      name: 'ນົກ (ເຈົ້າຂອງ)',
       avatarUrl:
           'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
-      lastMessage: 'Sure, we can move the viewing to 3pm tomorrow.',
-      time: 'Yesterday',
+      lastMessage: 'ໄດ້ເລີຍ, ພວກເຮົາຍ້າຍເວລານັດເປັນ 3 ໂມງແລງມື້ອື່ນໄດ້.',
+      time: 'ມື້ວານນີ້',
     ),
     _Conversation(
       name: 'HomeLao Support',
       avatarUrl:
           'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=100&q=80',
-      lastMessage: 'Your listing "Cozy Studio in Sisattanak" is now live.',
-      time: 'Yesterday',
+      lastMessage: 'ລາຍການ "ຫ້ອງເຊົ່າອົບອຸ່ນ ສີສັດຕະນາກ" ຂອງທ່ານລົງປະກາດແລ້ວ.',
+      time: 'ມື້ວານນີ້',
     ),
     _Conversation(
-      name: 'Bounmy (Agent)',
+      name: 'ບຸນມີ (ນາຍໜ້າ)',
       avatarUrl:
           'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80',
-      lastMessage: 'Thank you for your interest in the villa!',
-      time: 'Mon',
+      lastMessage: 'ຂອບໃຈທີ່ສົນໃຈວິນລາຫລັງນີ້!',
+      time: 'ວັນຈັນ',
       unread: 1,
     ),
     _Conversation(
-      name: 'Dara (Landlord)',
+      name: 'ດາລາ (ເຈົ້າຂອງ)',
       avatarUrl:
           'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80',
-      lastMessage: 'The mortgage calculator estimate looks good.',
-      time: 'Sun',
+      lastMessage: 'ຜົນຄິດໄລ່ເງິນກູ້ເບິ່ງດີຢູ່.',
+      time: 'ວັນອາທິດ',
     ),
   ];
 
@@ -90,7 +90,7 @@ class MessagesScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Messages',
+                    'ຂໍ້ຄວາມ',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -245,9 +245,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final List<_Bubble> _messages = [
-    const _Bubble('Hi! Is this property still available?', true),
-    const _Bubble('Yes, the apartment is still available for viewing.', false),
-    const _Bubble('Great, can I schedule a visit this weekend?', true),
+    const _Bubble('ສະບາຍດີ! ຊັບສິນນີ້ຍັງວ່າງຢູ່ບໍ່?', true),
+    const _Bubble('ແມ່ນແລ້ວ, ອາພາດເມັນຍັງວ່າງໃຫ້ເບິ່ງຢູ່.', false),
+    const _Bubble('ດີເລີຍ, ຂໍນັດເບິ່ງທ້າຍອາທິດນີ້ໄດ້ບໍ່?', true),
   ];
 
   @override
@@ -390,7 +390,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Type a message...',
+                        hintText: 'ພິມຂໍ້ຄວາມ...',
                         hintStyle: const TextStyle(
                           fontSize: 13.5,
                           color: AppColors.textSecondary,

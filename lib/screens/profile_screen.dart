@@ -6,17 +6,17 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   static const _menuItems = [
-    (Icons.home_work_rounded, 'My Listings'),
-    (Icons.favorite_rounded, 'Saved Properties'),
-    (Icons.chat_bubble_rounded, 'Messages'),
-    (Icons.event_available_rounded, 'Booking History'),
-    (Icons.payment_rounded, 'Payment Methods'),
-    (Icons.settings_rounded, 'Settings'),
-    (Icons.help_rounded, 'Help Center'),
+    (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
+    (Icons.favorite_rounded, 'ຊັບສິນທີ່ບັນທຶກ'),
+    (Icons.chat_bubble_rounded, 'ຂໍ້ຄວາມ'),
+    (Icons.event_available_rounded, 'ປະຫວັດການຈອງ'),
+    (Icons.payment_rounded, 'ວິທີການຊຳລະເງິນ'),
+    (Icons.settings_rounded, 'ຕັ້ງຄ່າ'),
+    (Icons.help_rounded, 'ສູນຊ່ວຍເຫຼືອ'),
   ];
 
   void _handleTap(BuildContext context, String label) {
-    if (label == 'Messages') {
+    if (label == 'ຂໍ້ຄວາມ') {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const MessagesScreen()));
@@ -24,7 +24,7 @@ class ProfileScreen extends StatelessWidget {
     }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('$label — coming soon')));
+    ).showSnackBar(SnackBar(content: Text('$label — ກຳລັງພັດທະນາ')));
   }
 
   void _confirmLogout(BuildContext context) {
@@ -32,20 +32,20 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
+        title: const Text('ອອກຈາກລະບົບ'),
+        content: const Text('ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການອອກຈາກລະບົບ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text(
-              'Cancel',
+              'ຍົກເລີກ',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text(
-              'Log Out',
+              'ອອກຈາກລະບົບ',
               style: TextStyle(
                 color: Colors.redAccent,
                 fontWeight: FontWeight.w700,
@@ -85,7 +85,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 const Text(
-                  'Profile',
+                  'ໂປຼໄຟລ໌',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -109,7 +109,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Somsanouk P.',
+                        'ສົມສະໜຸກ ພ.',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
@@ -132,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                   shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () => _handleTap(context, 'Edit Profile'),
+                    onTap: () => _handleTap(context, 'ແກ້ໄຂໂປຼໄຟລ໌'),
                     child: const Padding(
                       padding: EdgeInsets.all(9),
                       child: Icon(
@@ -155,15 +155,15 @@ class ProfileScreen extends StatelessWidget {
               child: const Row(
                 children: [
                   Expanded(
-                    child: _StatItem(value: '3', label: 'Listings'),
+                    child: _StatItem(value: '3', label: 'ລາຍການ'),
                   ),
                   _StatDivider(),
                   Expanded(
-                    child: _StatItem(value: '12', label: 'Saved'),
+                    child: _StatItem(value: '12', label: 'ບັນທຶກ'),
                   ),
                   _StatDivider(),
                   Expanded(
-                    child: _StatItem(value: '5', label: 'Bookings'),
+                    child: _StatItem(value: '5', label: 'ການຈອງ'),
                   ),
                 ],
               ),
@@ -210,7 +210,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Log Out',
+                        'ອອກຈາກລະບົບ',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,

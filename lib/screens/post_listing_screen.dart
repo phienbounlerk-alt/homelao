@@ -22,13 +22,13 @@ class _PostListingScreenState extends State<PostListingScreen> {
   final List<String> _photos = [];
 
   static const _typeOptions = [
-    (Icons.apartment_rounded, 'Apartment'),
-    (Icons.bed_rounded, 'Rental Room'),
-    (Icons.house_rounded, 'House'),
-    (Icons.location_city_rounded, 'Condo'),
-    (Icons.holiday_village_rounded, 'Villa'),
-    (Icons.chair_rounded, 'Office'),
-    (Icons.map_rounded, 'Land'),
+    (Icons.apartment_rounded, 'ອາພາດເມັນ'),
+    (Icons.bed_rounded, 'ຫ້ອງເຊົ່າ'),
+    (Icons.house_rounded, 'ເຮືອນ'),
+    (Icons.location_city_rounded, 'ຄອນໂດ'),
+    (Icons.holiday_village_rounded, 'ວິນລາ'),
+    (Icons.chair_rounded, 'ຫ້ອງການ'),
+    (Icons.map_rounded, 'ທີ່ດິນ'),
   ];
 
   static const _photoPool = [
@@ -65,14 +65,14 @@ class _PostListingScreenState extends State<PostListingScreen> {
     final formOk = _formKey.currentState!.validate();
     if (_photos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one photo')),
+        const SnackBar(content: Text('ກະລຸນາເພີ່ມຮູບຢ່າງໜ້ອຍໜຶ່ງໃບ')),
       );
       return;
     }
     if (_selectedType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a property type')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ກະລຸນາເລືອກປະເພດຊັບສິນ')));
       return;
     }
     if (!formOk) return;
@@ -85,12 +85,10 @@ class _PostListingScreenState extends State<PostListingScreen> {
           children: const [
             Icon(Icons.check_circle_rounded, color: AppColors.primaryGreen),
             SizedBox(width: 10),
-            Text('Listing Posted'),
+            Text('ລົງປະກາດສຳເລັດ'),
           ],
         ),
-        content: Text(
-          '"${_titleController.text}" is now live and visible to renters.',
-        ),
+        content: Text('"${_titleController.text}" ພ້ອມໃຫ້ຜູ້ເຊົ່າເຫັນແລ້ວ.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -98,7 +96,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
               Navigator.of(context).pop();
             },
             child: const Text(
-              'Done',
+              'ຕົກລົງ',
               style: TextStyle(
                 color: AppColors.primaryGreen,
                 fontWeight: FontWeight.w700,
@@ -139,7 +137,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Post a Listing',
+                    'ລົງປະກາດ',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -157,7 +155,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _FieldLabel('Photos'),
+                      const _FieldLabel('ຮູບພາບ'),
                       const SizedBox(height: 8),
                       _PhotoRow(
                         photos: _photos,
@@ -165,7 +163,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                         onRemove: _removePhoto,
                       ),
                       const SizedBox(height: 20),
-                      const _FieldLabel('Property Type'),
+                      const _FieldLabel('ປະເພດຊັບສິນ'),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -181,40 +179,40 @@ class _PostListingScreenState extends State<PostListingScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      const _FieldLabel('Title'),
+                      const _FieldLabel('ຊື່ລາຍການ'),
                       const SizedBox(height: 8),
                       _FormInput(
                         controller: _titleController,
-                        hint: 'e.g. Modern Apartment Near Patuxay',
+                        hint: 'ຕົວຢ່າງ: ອາພາດເມັນທັນສະໄໝ ໃກ້ປະຕູໄຊ',
                         validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Title is required'
+                            ? 'ກະລຸນາໃສ່ຊື່ລາຍການ'
                             : null,
                       ),
                       const SizedBox(height: 16),
-                      const _FieldLabel('Price (LAK / month)'),
+                      const _FieldLabel('ລາຄາ (ກີບ / ເດືອນ)'),
                       const SizedBox(height: 8),
                       _FormInput(
                         controller: _priceController,
-                        hint: 'e.g. 1800000',
+                        hint: 'ຕົວຢ່າງ: 1800000',
                         keyboardType: TextInputType.number,
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) {
-                            return 'Price is required';
+                            return 'ກະລຸນາໃສ່ລາຄາ';
                           }
                           if (int.tryParse(v.trim()) == null) {
-                            return 'Enter a valid number';
+                            return 'ກະລຸນາໃສ່ຕົວເລກທີ່ຖືກຕ້ອງ';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      const _FieldLabel('Location'),
+                      const _FieldLabel('ທີ່ຢູ່'),
                       const SizedBox(height: 8),
                       _FormInput(
                         controller: _locationController,
-                        hint: 'e.g. Chanthabouly, Vientiane',
+                        hint: 'ຕົວຢ່າງ: ຈັນທະບູລີ, ວຽງຈັນ',
                         validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Location is required'
+                            ? 'ກະລຸນາໃສ່ທີ່ຢູ່'
                             : null,
                       ),
                       const SizedBox(height: 16),
@@ -222,32 +220,32 @@ class _PostListingScreenState extends State<PostListingScreen> {
                         children: [
                           Expanded(
                             child: _NumberField(
-                              label: 'Bedrooms',
+                              label: 'ຫ້ອງນອນ',
                               controller: _bedsController,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _NumberField(
-                              label: 'Bathrooms',
+                              label: 'ຫ້ອງນ້ຳ',
                               controller: _bathsController,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _NumberField(
-                              label: 'Area (m²)',
+                              label: 'ເນື້ອທີ່ (ຕມ.)',
                               controller: _areaController,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const _FieldLabel('Description'),
+                      const _FieldLabel('ລາຍລະອຽດ'),
                       const SizedBox(height: 8),
                       _FormInput(
                         controller: _descController,
-                        hint: 'Describe the property...',
+                        hint: 'ອະທິບາຍລາຍລະອຽດຊັບສິນ...',
                         maxLines: 4,
                       ),
                     ],
@@ -277,7 +275,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                     padding: EdgeInsets.symmetric(vertical: 15),
                     child: Center(
                       child: Text(
-                        'Post Listing',
+                        'ລົງປະກາດ',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -492,7 +490,7 @@ class _PhotoRow extends StatelessWidget {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Add Photo',
+                      'ເພີ່ມຮູບ',
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w600,

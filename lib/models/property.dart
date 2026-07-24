@@ -10,6 +10,8 @@ class Property {
     required this.rating,
     required this.views,
     this.verified = true,
+    this.landlordAvatarUrl =
+        'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
   });
 
   final String imageUrl;
@@ -22,6 +24,7 @@ class Property {
   final double rating;
   final int views;
   final bool verified;
+  final String landlordAvatarUrl;
 
   String get formattedPrice {
     final s = priceLak.toString();

@@ -37,26 +37,26 @@ class HomeBottomNav extends StatelessWidget {
               children: [
                 _NavItem(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: 'ໜ້າຫຼັກ',
                   selected: currentIndex == 0,
                   onTap: () => onTap(0),
                 ),
                 _NavItem(
                   icon: Icons.search_rounded,
-                  label: 'Search',
+                  label: 'ຄົ້ນຫາ',
                   selected: currentIndex == 1,
                   onTap: () => onTap(1),
                 ),
                 _AddButton(onTap: () => onTap(2)),
                 _NavItem(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: 'Messages',
+                  label: 'ຂໍ້ຄວາມ',
                   selected: currentIndex == 3,
                   onTap: () => onTap(3),
                 ),
                 _NavItem(
                   icon: Icons.person_outline_rounded,
-                  label: 'Profile',
+                  label: 'ໂປຼໄຟລ໌',
                   selected: currentIndex == 4,
                   onTap: () => onTap(4),
                 ),
