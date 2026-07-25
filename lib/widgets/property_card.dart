@@ -213,6 +213,17 @@ class _PropertyCardState extends State<PropertyCard> {
                               ),
                             ),
                           ),
+                          if (property.distanceKm != null) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '${property.distanceKm!.toStringAsFixed(1)} km',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 8),

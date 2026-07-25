@@ -74,6 +74,36 @@ class PropertyRepository {
     return Property.fromMap(row);
   }
 
+  /// Listings within [radiusKm] of a point, nearest first. Only rows with a
+  /// saved lat/lng are ever candidates — most existing listings predate
+  /// geotagging and simply won't appear here.
+  static Future<List<Property>> fetchNear({
+    required double lat,
+    required double lng,
+    double radiusKm = 15,
+  }) async {
+    final ranked = await _client.rpc(
+      'properties_near',
+      params: {'origin_lat': lat, 'origin_lng': lng, 'radius_km': radiusKm},
+    ) as List;
+    if (ranked.isEmpty) return [];
+    final distanceById = <String, double>{
+      for (final row in ranked)
+        (row as Map<String, dynamic>)['id'] as String:
+            (row['distance_km'] as num).toDouble(),
+    };
+    final rows = await _client
+        .from('properties')
+        .select()
+        .inFilter('id', distanceById.keys.toList());
+    final properties = (rows as List)
+        .map((row) => Property.fromMap(row as Map<String, dynamic>))
+        .map((p) => p.withDistance(distanceById[p.id]!))
+        .toList();
+    properties.sort((a, b) => a.distanceKm!.compareTo(b.distanceKm!));
+    return properties;
+  }
+
   /// Distinct district names, for the search filter sheet's location chips.
   static Future<List<String>> fetchLocations() async {
     final rows = await _client.from('properties').select('location');

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import '../data/geolocation.dart';
 import '../data/property_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -33,6 +34,8 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _loadingInitial = true;
   bool _loadingMore = false;
   bool _error = false;
+  bool _nearMe = false;
+  bool _locating = false;
 
   static const _categories = [
     (Icons.apartment_rounded, 'ອາພາດເມັນ'),
@@ -69,7 +72,53 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _toggleNearMe() async {
+    if (_nearMe) {
+      setState(() => _nearMe = false);
+      _loadPage(reset: true);
+      return;
+    }
+    setState(() => _locating = true);
+    try {
+      final (lat, lng) = await currentLatLng();
+      final results = await PropertyRepository.fetchNear(lat: lat, lng: lng);
+      if (!mounted) return;
+      setState(() {
+        _nearMe = true;
+        _locating = false;
+        _results
+          ..clear()
+          ..addAll(results);
+        _hasMore = false;
+        _loadingInitial = false;
+        _error = false;
+      });
+    } on GeolocationDenied {
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ກະລຸນາອະນຸຍາດການເຂົ້າເຖິງຕຳແໜ່ງເພື່ອຄົ້ນຫາໃກ້ຂ້ອຍ'),
+        ),
+      );
+    } on GeolocationUnavailable {
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ກະລຸນາເປີດການບໍລິການຕຳແໜ່ງຂອງອຸປະກອນ')),
+      );
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ຄົ້ນຫາໃກ້ຂ້ອຍບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   Future<void> _loadPage({bool reset = false}) async {
+    if (_nearMe) return;
     if (reset) {
       setState(() {
         _page = 0;
@@ -122,7 +171,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onQueryChanged(String value) {
-    setState(() => _query = value);
+    setState(() {
+      _query = value;
+      _nearMe = false;
+    });
     _debounce?.cancel();
     _debounce = Timer(
       const Duration(milliseconds: 350),
@@ -131,9 +183,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onCategoryTap(String category) {
-    setState(
-      () => _activeCategory = _activeCategory == category ? null : category,
-    );
+    setState(() {
+      _activeCategory = _activeCategory == category ? null : category;
+      _nearMe = false;
+    });
     _loadPage(reset: true);
   }
 
@@ -144,7 +197,10 @@ class _SearchScreenState extends State<SearchScreen> {
       locations: _locations,
     );
     if (result != null) {
-      setState(() => _filters = result);
+      setState(() {
+        _filters = result;
+        _nearMe = false;
+      });
       _loadPage(reset: true);
     }
   }
@@ -281,10 +337,62 @@ class _SearchScreenState extends State<SearchScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
+                itemCount: _categories.length + 1,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
-                  final c = _categories[i];
+                  if (i == 0) {
+                    return Material(
+                      color: _nearMe
+                          ? AppColors.primaryGreen
+                          : AppColors.secondaryGreen,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _locating ? null : _toggleNearMe,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _locating
+                                  ? SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: _nearMe
+                                            ? Colors.white
+                                            : AppColors.primaryGreen,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.my_location_rounded,
+                                      size: 15,
+                                      color: _nearMe
+                                          ? Colors.white
+                                          : AppColors.primaryGreen,
+                                    ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'ໃກ້ຂ້ອຍ',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: _nearMe
+                                      ? Colors.white
+                                      : AppColors.primaryGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  final c = _categories[i - 1];
                   final selected = _activeCategory == c.$2;
                   return Material(
                     color: selected
@@ -336,6 +444,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   Text(
                     _loadingInitial
                         ? 'ກຳລັງຄົ້ນຫາ...'
+                        : _nearMe
+                        ? 'ພົບ ${_results.length} ຊັບສິນໃກ້ທ່ານ (< 15 km)'
                         : 'ພົບ ${_results.length}${_hasMore ? '+' : ''} ຊັບສິນ',
                     style: TextStyle(
                       fontSize: 13,
@@ -394,7 +504,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'ລອງຄົ້ນຫາຄຳອື່ນ',
+                            _nearMe
+                                ? 'ຍັງບໍ່ມີປະກາດທີ່ບອກຕຳແໜ່ງໃນຮັດສະໝີ 15 km'
+                                : 'ລອງຄົ້ນຫາຄຳອື່ນ',
                             style: TextStyle(
                               fontSize: 12.5,
                               color: AppColors.textSecondary,

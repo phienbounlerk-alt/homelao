@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/geolocation.dart';
 import '../data/storage_repository.dart';
 import '../theme/app_theme.dart';
 
@@ -26,6 +27,9 @@ class _PostListingScreenState extends State<PostListingScreen> {
   final List<String> _photos = [];
   bool _submitting = false;
   bool _uploadingPhoto = false;
+  double? _lat;
+  double? _lng;
+  bool _locating = false;
 
   static const _maxPhotos = 6;
 
@@ -111,6 +115,38 @@ class _PostListingScreenState extends State<PostListingScreen> {
     setState(() => _photos.removeAt(i));
   }
 
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      final (lat, lng) = await currentLatLng();
+      if (!mounted) return;
+      setState(() {
+        _lat = lat;
+        _lng = lng;
+        _locating = false;
+      });
+    } on GeolocationDenied {
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ກະລຸນາອະນຸຍາດການເຂົ້າເຖິງຕຳແໜ່ງ')),
+      );
+    } on GeolocationUnavailable {
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ກະລຸນາເປີດການບໍລິການຕຳແໜ່ງຂອງອຸປະກອນ')),
+      );
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ບັນທຶກຕຳແໜ່ງບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   Future<void> _submit() async {
     final formOk = _formKey.currentState!.validate();
     if (_photos.isEmpty) {
@@ -143,6 +179,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'rating': 0,
           'views': 0,
           'description': _descController.text.trim(),
+          if (_lat != null) 'lat': _lat,
+          if (_lng != null) 'lng': _lng,
         });
       }
     } catch (e, st) {
@@ -301,7 +339,47 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             ? 'ກະລຸນາໃສ່ທີ່ຢູ່'
                             : null,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: _locating ? null : _useCurrentLocation,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _locating
+                                  ? SizedBox(
+                                      width: 13,
+                                      height: 13,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    )
+                                  : Icon(
+                                      _lat != null
+                                          ? Icons.check_circle_rounded
+                                          : Icons.my_location_rounded,
+                                      size: 15,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _lat != null
+                                    ? 'ບັນທຶກຕຳແໜ່ງແລ້ວ — ຈະໂຊວ໌ໃນຄົ້ນຫາໃກ້ຂ້ອຍ'
+                                    : 'ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ (ບໍ່ບັງຄັບ)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(

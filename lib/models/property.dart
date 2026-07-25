@@ -22,6 +22,7 @@ class Property {
     this.featured = false,
     this.featuredUntil,
     this.ownerId,
+    this.distanceKm,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -81,6 +82,32 @@ class Property {
   final bool featured;
   final DateTime? featuredUntil;
   final String? ownerId;
+
+  /// Distance in km from a search origin — only set on results from
+  /// [PropertyRepository.fetchNear], never persisted or read from Supabase.
+  final double? distanceKm;
+
+  Property withDistance(double km) => Property(
+    id: id,
+    imageUrl: imageUrl,
+    priceLak: priceLak,
+    title: title,
+    location: location,
+    beds: beds,
+    baths: baths,
+    areaSqm: areaSqm,
+    rating: rating,
+    views: views,
+    verified: verified,
+    landlordAvatarUrl: landlordAvatarUrl,
+    landlordName: landlordName,
+    description: description,
+    status: status,
+    featured: featured,
+    featuredUntil: featuredUntil,
+    ownerId: ownerId,
+    distanceKm: km,
+  );
 
   /// Whether the paid featured-listing boost is still within its window —
   /// checked against [featuredUntil] rather than trusting [featured] alone,
