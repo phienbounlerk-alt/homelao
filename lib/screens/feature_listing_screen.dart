@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/payment_repository.dart';
 import '../data/storage_repository.dart';
 import '../models/property.dart';
@@ -43,7 +44,8 @@ class _FeatureListingScreenState extends State<FeatureListingScreen> {
         _proofUrl = url;
         _uploadingProof = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _uploadingProof = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,7 +96,8 @@ class _FeatureListingScreenState extends State<FeatureListingScreen> {
           ],
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ສົ່ງຄຳຮ້ອງບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),

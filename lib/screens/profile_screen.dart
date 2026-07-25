@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/admin_repository.dart';
 import '../data/favorites_store.dart';
@@ -88,7 +89,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _savedCount = (results[1] as List).length;
         _bookingCount = (results[2] as List).length;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       // Leave counts at their loading placeholder on failure.
     }
   }

@@ -21,6 +21,7 @@ class Property {
     this.status = 'approved',
     this.featured = false,
     this.featuredUntil,
+    this.ownerId,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -53,6 +54,7 @@ class Property {
       featuredUntil: map['featured_until'] != null
           ? DateTime.parse(map['featured_until'] as String)
           : null,
+      ownerId: map['owner_id'] as String?,
     );
   }
 
@@ -78,6 +80,7 @@ class Property {
 
   final bool featured;
   final DateTime? featuredUntil;
+  final String? ownerId;
 
   /// Whether the paid featured-listing boost is still within its window —
   /// checked against [featuredUntil] rather than trusting [featured] alone,

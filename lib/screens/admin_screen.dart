@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/admin_repository.dart';
 import '../models/featured_request.dart';
 import '../models/property.dart';
@@ -126,7 +127,8 @@ class _PendingPropertiesTabState extends State<_PendingPropertiesTab> {
         _pending = properties;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -138,13 +140,14 @@ class _PendingPropertiesTabState extends State<_PendingPropertiesTab> {
   Future<void> _decide(Property property, String status) async {
     setState(() => _busyIds.add(property.id));
     try {
-      await AdminRepository.setStatus(property.id, status);
+      await AdminRepository.setStatus(property, status);
       if (!mounted) return;
       setState(() {
         _pending.removeWhere((p) => p.id == property.id);
         _busyIds.remove(property.id);
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _busyIds.remove(property.id));
       ScaffoldMessenger.of(context).showSnackBar(
@@ -233,7 +236,8 @@ class _FeatureRequestsTabState extends State<_FeatureRequestsTab> {
         _requests = requests;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -254,7 +258,8 @@ class _FeatureRequestsTabState extends State<_FeatureRequestsTab> {
         _requests.removeWhere((r) => r.id == request.id);
         _busyIds.remove(request.id);
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _busyIds.remove(request.id));
       ScaffoldMessenger.of(context).showSnackBar(

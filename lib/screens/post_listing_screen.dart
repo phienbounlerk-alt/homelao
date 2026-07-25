@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/storage_repository.dart';
 import '../theme/app_theme.dart';
@@ -86,7 +87,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
         );
         if (!mounted) return;
         setState(() => _photos.add(url));
-      } catch (_) {
+      } catch (e, st) {
+        Sentry.captureException(e, stackTrace: st);
         failures++;
       }
     }
@@ -143,7 +145,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'description': _descController.text.trim(),
         });
       }
-    } catch (e) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(

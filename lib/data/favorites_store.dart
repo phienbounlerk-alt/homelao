@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// App-wide favorited-listing state for the signed-in user, backed by the
@@ -61,7 +62,8 @@ class FavoritesStore extends ChangeNotifier {
           'property_id': propertyId,
         });
       }
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       wasFavorite
           ? _favoriteIds.add(propertyId)
           : _favoriteIds.remove(propertyId);

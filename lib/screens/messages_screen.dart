@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/conversation_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
@@ -38,7 +39,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
         _conversations = rows;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -346,7 +348,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       // The realtime subscription delivers the new row back to us (and to
       // the other side) as soon as it's inserted, so no local append here.
       await ConversationRepository.sendMessage(widget.conversationId, text);
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ສົ່ງຂໍ້ຄວາມບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),

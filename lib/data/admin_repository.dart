@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'notification_repository.dart';
 import '../models/featured_request.dart';
 import '../models/property.dart';
 
@@ -29,11 +30,23 @@ class AdminRepository {
         .toList();
   }
 
-  static Future<void> setStatus(String propertyId, String status) async {
+  static Future<void> setStatus(Property property, String status) async {
     await _client
         .from('properties')
         .update({'status': status})
-        .eq('id', propertyId);
+        .eq('id', property.id);
+    final ownerId = property.ownerId;
+    if (ownerId == null) return;
+    final approved = status == 'approved';
+    await NotificationRepository.notify(
+      userId: ownerId,
+      title: approved ? 'ປະກາດຖືກອະນຸມັດແລ້ວ' : 'ປະກາດຖືກປະຕິເສດ',
+      body: approved
+          ? '"${property.title}" ອະນຸມັດແລ້ວ, ຄົນອື່ນເຫັນໄດ້ແລ້ວ.'
+          : '"${property.title}" ຖືກປະຕິເສດ, ກະລຸນາກວດສອບຂໍ້ມູນອີກຄັ້ງ.',
+      type: approved ? 'listing_approved' : 'listing_rejected',
+      relatedPropertyId: property.id,
+    );
   }
 
   static Future<List<FeaturedRequest>> fetchPendingFeatureRequests() async {
@@ -70,5 +83,14 @@ class AdminRepository {
           .update({'featured': true, 'featured_until': until.toIso8601String()})
           .eq('id', request.propertyId);
     }
+    await NotificationRepository.notify(
+      userId: request.ownerId,
+      title: approve ? 'ຢືນຢັນການໂອນເງິນແລ້ວ' : 'ຄຳຮ້ອງເດັ່ນຖືກປະຕິເສດ',
+      body: approve
+          ? '"${request.propertyTitle}" ຂຶ້ນເດັ່ນແລ້ວ ${request.durationDays} ວັນ.'
+          : 'ຄຳຮ້ອງເຮັດໃຫ້ "${request.propertyTitle}" ເດັ່ນຖືກປະຕິເສດ — ກະລຸນາກວດສອບຫຼັກຖານການໂອນ.',
+      type: approve ? 'feature_confirmed' : 'feature_rejected',
+      relatedPropertyId: request.propertyId,
+    );
   }
 }

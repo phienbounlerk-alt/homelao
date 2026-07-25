@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/payment_repository.dart';
 import '../models/featured_request.dart';
 import '../theme/app_theme.dart';
@@ -37,7 +38,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         _requests = requests;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;

@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
+import '../models/app_notification.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_item.dart';
@@ -9,6 +12,7 @@ import '../widgets/feature_chip.dart';
 import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
+import 'notifications_screen.dart';
 import 'property_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -46,15 +50,27 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   List<Property> _recommended = [];
-  List<Property> _newestListings = [];
   List<Property> _featured = [];
+  List<Property> _newestListings = [];
   bool _loading = true;
   bool _error = false;
+
+  StreamSubscription<List<Property>>? _newestSub;
 
   @override
   void initState() {
     super.initState();
     _loadProperties();
+    _newestSub = PropertyRepository.streamNewest().listen((rows) {
+      if (!mounted) return;
+      setState(() => _newestListings = rows);
+    }, onError: (e, st) => Sentry.captureException(e, stackTrace: st));
+  }
+
+  @override
+  void dispose() {
+    _newestSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadProperties() async {
@@ -65,17 +81,16 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final results = await Future.wait([
         PropertyRepository.fetchRecommended(),
-        PropertyRepository.fetchNewest(),
         PropertyRepository.fetchFeatured(),
       ]);
       if (!mounted) return;
       setState(() {
         _recommended = results[0];
-        _newestListings = results[1];
-        _featured = results[2];
+        _featured = results[1];
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -355,7 +370,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends StatefulWidget {
+  @override
+  State<_TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends State<_TopBar> {
+  // Created once and held for this State's lifetime so rebuilds (e.g. from
+  // unrelated setState calls elsewhere on Home) don't tear down and
+  // resubscribe the realtime notifications stream every time.
+  late final _notifications = NotificationRepository.streamMine();
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -396,27 +421,52 @@ class _TopBar extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(
-              Icons.notifications_none_rounded,
-              size: 26,
-              color: AppColors.textPrimary,
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: AppColors.success,
-                  shape: BoxShape.circle,
+        StreamBuilder<List<AppNotification>>(
+          stream: _notifications,
+          builder: (context, snapshot) {
+            final unread = snapshot.data?.where((n) => !n.read).length ?? 0;
+            return Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Tooltip(
+                    message: 'ແຈ້ງເຕືອນ',
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.notifications_none_rounded,
+                          size: 26,
+                          color: AppColors.textPrimary,
+                        ),
+                        if (unread > 0)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: AppColors.success,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
         const SizedBox(width: 16),
         const CircleAvatar(

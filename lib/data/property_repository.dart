@@ -62,6 +62,18 @@ class PropertyRepository {
         .toList();
   }
 
+  /// Single listing by id — used to open a property from a notification.
+  /// Null if it no longer exists or isn't visible to the current user (RLS).
+  static Future<Property?> fetchById(String id) async {
+    final row = await _client
+        .from('properties')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+    if (row == null) return null;
+    return Property.fromMap(row);
+  }
+
   /// Distinct district names, for the search filter sheet's location chips.
   static Future<List<String>> fetchLocations() async {
     final rows = await _client.from('properties').select('location');
@@ -83,15 +95,19 @@ class PropertyRepository {
         .toList();
   }
 
-  static Future<List<Property>> fetchNewest({int limit = 4}) async {
-    final rows = await _client
+  /// Live-updating "newest listings" — RLS still applies per-connection, so
+  /// a viewer only ever sees rows they're allowed to see (approved, or
+  /// their own/admin). New approvals appear here without a manual refresh.
+  static Stream<List<Property>> streamNewest({int limit = 4}) {
+    return _client
         .from('properties')
-        .select()
+        .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
-        .limit(limit);
-    return (rows as List)
-        .map((row) => Property.fromMap(row as Map<String, dynamic>))
-        .toList();
+        .limit(limit)
+        .map(
+          (rows) =>
+              rows.map((row) => Property.fromMap(row)).toList(growable: false),
+        );
   }
 
   /// Listings posted by the current user.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/booking_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
@@ -36,7 +37,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         _bookings = bookings;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
