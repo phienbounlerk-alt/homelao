@@ -127,14 +127,14 @@ class _PostListingScreenState extends State<PostListingScreen> {
         });
       }
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('ລົງປະກາດບໍ່ສຳເລັດ: $e')));
       return;
     }
-    if (!context.mounted) return;
+    if (!mounted) return;
     setState(() => _submitting = false);
 
     showDialog(
