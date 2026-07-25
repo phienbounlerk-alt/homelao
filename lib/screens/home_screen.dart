@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Property> _recommended = [];
   List<Property> _newestListings = [];
+  List<Property> _featured = [];
   bool _loading = true;
   bool _error = false;
 
@@ -65,11 +66,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         PropertyRepository.fetchRecommended(),
         PropertyRepository.fetchNewest(),
+        PropertyRepository.fetchFeatured(),
       ]);
       if (!mounted) return;
       setState(() {
         _recommended = results[0];
         _newestListings = results[1];
+        _featured = results[2];
         _loading = false;
       });
     } catch (_) {
@@ -228,6 +231,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              if (!_error && _featured.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    child: _SectionHeader(title: '★ ຊັບສິນເດັ່ນ'),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 320,
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _featured.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 14),
+                      itemBuilder: (context, i) =>
+                          PropertyCard(property: _featured[i]),
+                    ),
+                  ),
+                ),
+              ],
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 34, 20, 0),

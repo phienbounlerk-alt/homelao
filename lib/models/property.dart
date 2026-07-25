@@ -19,6 +19,8 @@ class Property {
         'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
         'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
     this.status = 'approved',
+    this.featured = false,
+    this.featuredUntil,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -47,6 +49,10 @@ class Property {
                 'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
                 'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
       status: map['status'] as String? ?? 'approved',
+      featured: map['featured'] as bool? ?? false,
+      featuredUntil: map['featured_until'] != null
+          ? DateTime.parse(map['featured_until'] as String)
+          : null,
     );
   }
 
@@ -69,6 +75,17 @@ class Property {
   /// and admins ever see a non-approved row — RLS hides it from everyone
   /// else at the query level.
   final String status;
+
+  final bool featured;
+  final DateTime? featuredUntil;
+
+  /// Whether the paid featured-listing boost is still within its window —
+  /// checked against [featuredUntil] rather than trusting [featured] alone,
+  /// since nothing clears that flag once the period lapses.
+  bool get isFeaturedNow =>
+      featured &&
+      featuredUntil != null &&
+      featuredUntil!.isAfter(DateTime.now());
 
   String get formattedPrice {
     final s = priceLak.toString();

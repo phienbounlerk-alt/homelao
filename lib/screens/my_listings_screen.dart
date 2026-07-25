@@ -4,6 +4,7 @@ import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
 import '../widgets/property_card.dart';
+import 'feature_listing_screen.dart';
 
 class MyListingsScreen extends StatefulWidget {
   const MyListingsScreen({super.key});
@@ -135,17 +136,81 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                         final cardWidth =
                             MediaQuery.of(context).size.width - 40;
                         final photoHeight = cardWidth * 9 / 16;
-                        return Stack(
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            PropertyCard(property: property, width: cardWidth),
-                            if (property.status != 'approved')
-                              // Bottom-left of the photo: the verified badge
-                              // already owns top-left and the favorite icon
-                              // owns top-right.
-                              Positioned(
-                                left: 10,
-                                top: photoHeight - 32,
-                                child: _StatusBadge(status: property.status),
+                            Stack(
+                              children: [
+                                PropertyCard(
+                                  property: property,
+                                  width: cardWidth,
+                                ),
+                                if (property.status != 'approved')
+                                  // Bottom-left of the photo: the verified
+                                  // badge already owns top-left and the
+                                  // favorite icon owns top-right.
+                                  Positioned(
+                                    left: 10,
+                                    top: photoHeight - 32,
+                                    child: _StatusBadge(
+                                      status: property.status,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (property.status == 'approved')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: property.isFeaturedNow
+                                    ? Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: 16,
+                                            color: Color(0xFFD97706),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'ເດັ່ນຢູ່ຮອດ ${property.featuredUntil!.day}/${property.featuredUntil!.month}/${property.featuredUntil!.year}',
+                                            style: const TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : InkWell(
+                                        onTap: () => Navigator.of(context)
+                                            .push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    FeatureListingScreen(
+                                                      property: property,
+                                                    ),
+                                              ),
+                                            )
+                                            .then((_) => _load()),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.star_outline_rounded,
+                                              size: 16,
+                                              color: AppColors.primaryGreen,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'ເຮັດໃຫ້ເດັ່ນ',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.primaryGreen,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                               ),
                           ],
                         );

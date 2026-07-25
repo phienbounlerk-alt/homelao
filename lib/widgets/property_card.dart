@@ -95,13 +95,26 @@ class _PropertyCardState extends State<PropertyCard> {
                         },
                       ),
                     ),
-                    if (property.verified)
+                    if (property.verified || property.isFeaturedNow)
                       Positioned(
                         top: 10,
                         left: 10,
-                        child: _Badge(
-                          label: 'ຢືນຢັນແລ້ວ',
-                          color: AppColors.primaryGreen,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (property.isFeaturedNow) ...[
+                              const _Badge(
+                                label: '★ ເດັ່ນ',
+                                color: Color(0xFFD97706),
+                              ),
+                              if (property.verified) const SizedBox(width: 6),
+                            ],
+                            if (property.verified)
+                              _Badge(
+                                label: 'ຢືນຢັນແລ້ວ',
+                                color: AppColors.primaryGreen,
+                              ),
+                          ],
                         ),
                       ),
                     Positioned(

@@ -39,8 +39,24 @@ class PropertyRepository {
     final from = page * pageSize;
     final to = from + pageSize - 1;
     final rows = await builder
+        .order('featured', ascending: false)
         .order('created_at', ascending: false)
         .range(from, to);
+    return (rows as List)
+        .map((row) => Property.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Currently-boosted listings (paid, admin-confirmed, still within their
+  /// window) for the Home screen's featured section.
+  static Future<List<Property>> fetchFeatured({int limit = 8}) async {
+    final rows = await _client
+        .from('properties')
+        .select()
+        .eq('featured', true)
+        .gt('featured_until', DateTime.now().toIso8601String())
+        .order('featured_until', ascending: false)
+        .limit(limit);
     return (rows as List)
         .map((row) => Property.fromMap(row as Map<String, dynamic>))
         .toList();
