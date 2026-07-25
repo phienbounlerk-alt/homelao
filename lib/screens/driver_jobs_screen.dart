@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/driver_repository.dart';
+import '../data/geolocation.dart';
 import '../models/moving_request.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
@@ -217,10 +220,23 @@ class _MyJobsTabState extends State<_MyJobsTab> {
   bool _error = false;
   final Set<String> _busyIds = {};
 
+  Timer? _locationTimer;
+  bool _sharingLocation = false;
+  bool _locationError = false;
+
+  bool get _hasActiveJob =>
+      _jobs.any((j) => j.status == 'accepted' || j.status == 'in_progress');
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -235,12 +251,55 @@ class _MyJobsTabState extends State<_MyJobsTab> {
         _jobs = jobs;
         _loading = false;
       });
+      _syncLocationSharing();
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
         _error = true;
+      });
+    }
+  }
+
+  // Location sharing only runs while this screen is open in the foreground
+  // and a job is accepted/in_progress — this is a web app, so there's no
+  // background service to keep pushing GPS fixes once the driver navigates
+  // away or locks their phone.
+  void _syncLocationSharing() {
+    if (_hasActiveJob) {
+      _locationTimer ??= Timer.periodic(
+        const Duration(seconds: 15),
+        (_) => _pushLocation(),
+      );
+      if (!_sharingLocation) _pushLocation();
+    } else {
+      _locationTimer?.cancel();
+      _locationTimer = null;
+      if (_sharingLocation || _locationError) {
+        setState(() {
+          _sharingLocation = false;
+          _locationError = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pushLocation() async {
+    try {
+      final (lat, lng) = await currentLatLng();
+      await DriverRepository.updateMyLocation(lat: lat, lng: lng);
+      if (!mounted) return;
+      setState(() {
+        _sharingLocation = true;
+        _locationError = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _sharingLocation = false;
+        _locationError = true;
       });
     }
   }
@@ -293,33 +352,79 @@ class _MyJobsTabState extends State<_MyJobsTab> {
         ),
       );
     }
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: AppColors.primaryGreen,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        itemCount: _jobs.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (context, i) {
-          final job = _jobs[i];
-          final busy = _busyIds.contains(job.id);
-          return switch (job.status) {
-            'accepted' => _JobCard(
-              request: job,
-              busy: busy,
-              primaryLabel: 'ເລີ່ມຂົນສົ່ງ',
-              onPrimary: () => _advance(job, 'in_progress'),
+    return Column(
+      children: [
+        if (_hasActiveJob)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _locationError
+                  ? Colors.redAccent.withValues(alpha: 0.12)
+                  : AppColors.primaryGreen.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-            'in_progress' => _JobCard(
-              request: job,
-              busy: busy,
-              primaryLabel: 'ສຳເລັດແລ້ວ',
-              onPrimary: () => _advance(job, 'completed'),
+            child: Row(
+              children: [
+                Icon(
+                  _locationError
+                      ? Icons.location_off_rounded
+                      : Icons.location_on_rounded,
+                  size: 16,
+                  color: _locationError
+                      ? Colors.redAccent
+                      : AppColors.primaryGreen,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _locationError
+                        ? 'ບໍ່ສາມາດແບ່ງປັນຕຳແໜ່ງໄດ້ — ກະລຸນາອະນຸຍາດການເຂົ້າເຖິງຕຳແໜ່ງ'
+                        : 'ກຳລັງແບ່ງປັນຕຳແໜ່ງໃຫ້ລູກຄ້າເຫັນ — ຮັກສາໜ້ານີ້ໄວ້ຂະນະຂັບລົດ',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: _locationError
+                          ? Colors.redAccent
+                          : AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            _ => _JobCard(request: job, busy: false),
-          };
-        },
-      ),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            color: AppColors.primaryGreen,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              itemCount: _jobs.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 14),
+              itemBuilder: (context, i) {
+                final job = _jobs[i];
+                final busy = _busyIds.contains(job.id);
+                return switch (job.status) {
+                  'accepted' => _JobCard(
+                    request: job,
+                    busy: busy,
+                    primaryLabel: 'ເລີ່ມຂົນສົ່ງ',
+                    onPrimary: () => _advance(job, 'in_progress'),
+                  ),
+                  'in_progress' => _JobCard(
+                    request: job,
+                    busy: busy,
+                    primaryLabel: 'ສຳເລັດແລ້ວ',
+                    onPrimary: () => _advance(job, 'completed'),
+                  ),
+                  _ => _JobCard(request: job, busy: false),
+                };
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

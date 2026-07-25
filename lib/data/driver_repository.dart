@@ -74,6 +74,29 @@ class DriverRepository {
     return Driver.fromMap(row);
   }
 
+  /// Live-updating view of a single driver's row — used to follow their
+  /// position on the customer's tracking map.
+  static Stream<Driver?> streamDriver(String driverId) {
+    return _client
+        .from('drivers')
+        .stream(primaryKey: ['id'])
+        .eq('id', driverId)
+        .map((rows) => rows.isEmpty ? null : Driver.fromMap(rows.first));
+  }
+
+  /// Pushes the driver's current GPS fix via a security-definer RPC scoped
+  /// to their own row, rather than a broad self-update RLS policy that
+  /// could let them touch other columns (like status).
+  static Future<void> updateMyLocation({
+    required double lat,
+    required double lng,
+  }) async {
+    await _client.rpc(
+      'update_driver_location',
+      params: {'p_lat': lat, 'p_lng': lng},
+    );
+  }
+
   /// Open jobs any approved driver can claim.
   static Future<List<MovingRequest>> fetchPendingForDrivers() async {
     final rows = await _client

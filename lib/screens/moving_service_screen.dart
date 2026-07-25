@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_repository.dart';
 import '../models/moving_request.dart';
 import '../theme/app_theme.dart';
+import 'driver_tracking_screen.dart';
 
 const _vehicleTypes = ['ລົດກະບະ', 'ລົດບັນທຸກກາງ', 'ລົດບັນທຸກໃຫຍ່'];
 
@@ -534,6 +535,49 @@ class _RequestCardState extends State<_RequestCard> {
               ),
             ],
           ),
+          if (request.driverId != null &&
+              (request.status == 'accepted' ||
+                  request.status == 'in_progress')) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          DriverTrackingScreen(driverId: request.driverId!),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.map_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'ເບິ່ງແຜນທີ່',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
           if (request.driverId != null || request.status == 'pending') ...[
             const SizedBox(height: 12),
             Row(
