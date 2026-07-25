@@ -5,7 +5,8 @@
 class SentryConfig {
   SentryConfig._();
 
-  static const dsn = 'TODO_REPLACE_WITH_REAL_SENTRY_DSN';
+  static const dsn =
+      'https://978402fc62a3db74ea4fbbd12856be69@o4511796222689280.ingest.us.sentry.io/4511796239663104';
 
   static bool get isConfigured => !dsn.startsWith('TODO_');
 }
