@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/admin_repository.dart';
+import '../data/driver_repository.dart';
 import '../data/favorites_store.dart';
 import '../theme/app_theme.dart';
 import 'admin_screen.dart';
 import 'booking_history_screen.dart';
+import 'driver_jobs_screen.dart';
+import 'driver_registration_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
 import 'legal_screen.dart';
@@ -31,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int? _savedCount;
   int? _bookingCount;
   bool _isAdmin = false;
+  String? _driverStatus;
 
   static const _baseMenuItems = [
     (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
@@ -45,8 +49,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<(IconData, String)> get _menuItems => [
     for (final item in _baseMenuItems) ...[
-      if (_isAdmin && item.$2 == 'ຕັ້ງຄ່າ')
-        (Icons.admin_panel_settings_rounded, 'ຈັດການລະບົບ'),
+      if (item.$2 == 'ຕັ້ງຄ່າ') ...[
+        if (_isAdmin) (Icons.admin_panel_settings_rounded, 'ຈັດການລະບົບ'),
+        if (_driverStatus == 'approved')
+          (Icons.local_shipping_rounded, 'ວຽກຂົນສົ່ງ')
+        else
+          (Icons.local_shipping_outlined, 'ສະໝັກເປັນຄົນຂັບ'),
+      ],
       item,
     ],
   ];
@@ -57,12 +66,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     FavoritesStore.instance.addListener(_onFavoritesChanged);
     _loadStats();
     _checkAdmin();
+    _checkDriver();
   }
 
   Future<void> _checkAdmin() async {
     final isAdmin = await AdminRepository.isCurrentUserAdmin();
     if (!mounted) return;
     setState(() => _isAdmin = isAdmin);
+  }
+
+  Future<void> _checkDriver() async {
+    try {
+      final driver = await DriverRepository.fetchMine();
+      if (!mounted) return;
+      setState(() => _driverStatus = driver?.status);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+    }
   }
 
   @override
@@ -130,6 +150,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const AdminScreen()));
+      return;
+    }
+    if (label == 'ວຽກຂົນສົ່ງ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const DriverJobsScreen()));
+      return;
+    }
+    if (label == 'ສະໝັກເປັນຄົນຂັບ') {
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(builder: (_) => const DriverRegistrationScreen()),
+          )
+          .then((_) {
+            if (mounted) _checkDriver();
+          });
       return;
     }
     if (label == 'ຕັ້ງຄ່າ') {

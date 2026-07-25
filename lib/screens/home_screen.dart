@@ -13,6 +13,7 @@ import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
 import 'help_center_screen.dart';
+import 'moving_service_screen.dart';
 import 'notifications_screen.dart';
 import 'property_detail_screen.dart';
 
@@ -48,9 +49,11 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.sell_rounded, 'ລາຄາ\nຖືກສຸດ', () => widget.onNavigate(1)),
     (Icons.chat_bubble_rounded, 'ແຊັດ\nທັນທີ', () => widget.onNavigate(3)),
     (
-      Icons.calendar_month_rounded,
-      'ນັດ\nເບິ່ງບ້ານ',
-      () => widget.onNavigate(1),
+      Icons.local_shipping_rounded,
+      'ບໍລິການ\nຂົນສົ່ງເຄື່ອງ',
+      () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const MovingServiceScreen())),
     ),
     (
       Icons.support_agent_rounded,

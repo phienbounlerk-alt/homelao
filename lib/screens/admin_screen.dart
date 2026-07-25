@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/admin_repository.dart';
 import '../data/analytics_repository.dart';
+import '../models/driver.dart';
 import '../models/featured_request.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -16,7 +17,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabController = TabController(length: 3, vsync: this);
+  late final _tabController = TabController(length: 4, vsync: this);
 
   @override
   void dispose() {
@@ -76,9 +77,12 @@ class _AdminScreenState extends State<AdminScreen>
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: 'ປະກາດລໍຖ້າອະນຸມັດ'),
                 Tab(text: 'ຄຳຮ້ອງເດັ່ນ'),
+                Tab(text: 'ຄົນຂັບ'),
                 Tab(text: 'ສະຖິຕິ'),
               ],
             ),
@@ -88,6 +92,7 @@ class _AdminScreenState extends State<AdminScreen>
                 children: const [
                   _PendingPropertiesTab(),
                   _FeatureRequestsTab(),
+                  _PendingDriversTab(),
                   _AnalyticsTab(),
                 ],
               ),
@@ -314,6 +319,115 @@ class _FeatureRequestsTabState extends State<_FeatureRequestsTab> {
           busy: busy,
           onApprove: () => _decide(request, true),
           onReject: () => _decide(request, false),
+        );
+      },
+    );
+  }
+}
+
+class _PendingDriversTab extends StatefulWidget {
+  const _PendingDriversTab();
+
+  @override
+  State<_PendingDriversTab> createState() => _PendingDriversTabState();
+}
+
+class _PendingDriversTabState extends State<_PendingDriversTab> {
+  List<Driver> _pending = [];
+  bool _loading = true;
+  bool _error = false;
+  final Set<String> _busyIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final drivers = await AdminRepository.fetchPendingDrivers();
+      if (!mounted) return;
+      setState(() {
+        _pending = drivers;
+        _loading = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _decide(Driver driver, String status) async {
+    setState(() => _busyIds.add(driver.id));
+    try {
+      await AdminRepository.setDriverStatus(driver, status);
+      if (!mounted) return;
+      setState(() {
+        _pending.removeWhere((d) => d.id == driver.id);
+        _busyIds.remove(driver.id);
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(driver.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ດຳເນີນການບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (_error) return ErrorState(onRetry: _load);
+    if (_pending.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.task_alt_rounded,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'ບໍ່ມີຄົນຂັບລໍຖ້າອະນຸມັດ',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      itemCount: _pending.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, i) {
+        final driver = _pending[i];
+        final busy = _busyIds.contains(driver.id);
+        return _DriverCard(
+          driver: driver,
+          busy: busy,
+          onApprove: () => _decide(driver, 'approved'),
+          onReject: () => _decide(driver, 'rejected'),
         );
       },
     );
@@ -862,6 +976,133 @@ class _FeatureRequestCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     label: 'ຢືນຢັນການໂອນ',
+                    color: AppColors.primaryGreen,
+                    onTap: onApprove,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DriverCard extends StatelessWidget {
+  const _DriverCard({
+    required this.driver,
+    required this.busy,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  final Driver driver;
+  final bool busy;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (driver.vehiclePhotoUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    driver.vehiclePhotoUrl!,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.local_shipping_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      driver.driverName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${driver.vehicleType} — ${driver.vehiclePlate}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      driver.phone,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (busy)
+            Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'ປະຕິເສດ',
+                    color: const Color(0xFFDC2626),
+                    onTap: onReject,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ActionButton(
+                    label: 'ອະນຸມັດ',
                     color: AppColors.primaryGreen,
                     onTap: onApprove,
                   ),

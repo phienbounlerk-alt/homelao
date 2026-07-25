@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'notification_repository.dart';
+import '../models/driver.dart';
 import '../models/featured_request.dart';
 import '../models/property.dart';
 
@@ -91,6 +92,33 @@ class AdminRepository {
           : 'ຄຳຮ້ອງເຮັດໃຫ້ "${request.propertyTitle}" ເດັ່ນຖືກປະຕິເສດ — ກະລຸນາກວດສອບຫຼັກຖານການໂອນ.',
       type: approve ? 'feature_confirmed' : 'feature_rejected',
       relatedPropertyId: request.propertyId,
+    );
+  }
+
+  static Future<List<Driver>> fetchPendingDrivers() async {
+    final rows = await _client
+        .from('drivers')
+        .select()
+        .eq('status', 'pending')
+        .order('created_at');
+    return (rows as List)
+        .map((row) => Driver.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<void> setDriverStatus(Driver driver, String status) async {
+    await _client.from('drivers').update({'status': status}).eq(
+      'id',
+      driver.id,
+    );
+    final approved = status == 'approved';
+    await NotificationRepository.notify(
+      userId: driver.userId,
+      title: approved ? 'ບັນຊີຄົນຂັບຖືກອະນຸມັດແລ້ວ' : 'ບັນຊີຄົນຂັບຖືກປະຕິເສດ',
+      body: approved
+          ? 'ຍິນດີດ້ວຍ! ທ່ານສາມາດຮັບວຽກຂົນສົ່ງໄດ້ແລ້ວ.'
+          : 'ການສະໝັກເປັນຄົນຂັບຂອງທ່ານຖືກປະຕິເສດ — ກະລຸນາຕິດຕໍ່ທີມງານ.',
+      type: approved ? 'driver_approved' : 'driver_rejected',
     );
   }
 }
