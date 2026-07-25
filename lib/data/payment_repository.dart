@@ -37,14 +37,12 @@ class PaymentRepository {
   }
 }
 
-/// ⚠️ PLACEHOLDER — not a real account. Replace with HomeLao's actual
-/// bank/mobile-money details before this ever reaches a real landlord.
 class PaymentInstructions {
   PaymentInstructions._();
 
-  static const bankName = 'ທະນາຄານ BCEL (ຕົວຢ່າງ — ຍັງບໍ່ແມ່ນບັນຊີຈິງ)';
-  static const accountName = 'HomeLao (TODO: ໃສ່ຊື່ບັນຊີຈິງ)';
-  static const accountNumber = '000-0-00-00000000-0 (TODO)';
+  static const bankName = 'BCEL';
+  static const accountName = 'SOMPHIEN BOUNLERKXAIYASEN';
+  static const accountNumber = '2021217855324';
   static const amountLak = 50000;
   static const durationDays = 7;
 }
