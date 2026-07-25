@@ -1,28 +1,28 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../data/property_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_item.dart';
 import '../widgets/feature_chip.dart';
-import '../widgets/home_bottom_nav.dart';
+import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
-import 'messages_screen.dart';
-import 'post_listing_screen.dart';
-import 'profile_screen.dart';
-import 'search_screen.dart';
+import 'property_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.onNavigate});
+
+  /// Switches the parent shell's active tab (or pushes a route for the
+  /// "add listing" action), using the same index scheme as [HomeBottomNav].
+  final ValueChanged<int> onNavigate;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _navIndex = 0;
-
   static const _categories = [
     (Icons.apartment_rounded, 'ອາພາດເມັນ'),
     (Icons.bed_rounded, 'ຫ້ອງເຊົ່າ'),
@@ -45,119 +45,41 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.support_agent_rounded, 'ຊ່ວຍເຫຼືອ\n24 ຊມ.'),
   ];
 
-  static final _recommended = [
-    const Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&q=80',
-      priceLak: 1800000,
-      title: 'ອາພາດເມັນທັນສະໄໝ ໃກ້ປະຕູໄຊ',
-      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
-      beds: 2,
-      baths: 1,
-      areaSqm: 45,
-      rating: 4.8,
-      views: 1240,
-    ),
-    const Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80',
-      priceLak: 1200000,
-      title: 'ຫ້ອງເຊົ່າອົບອຸ່ນ ພ້ອມເຟີນິເຈີຄົບຊຸດ',
-      location: 'ສີສັດຕະນາກ, ວຽງຈັນ',
-      beds: 1,
-      baths: 1,
-      areaSqm: 25,
-      rating: 4.6,
-      views: 890,
-    ),
-    const Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&q=80',
-      priceLak: 2500000,
-      title: 'ຄອນໂດຫລູຫລາ ວິວເມືອງ',
-      location: 'ໄຊເສດຖາ, ວຽງຈັນ',
-      beds: 2,
-      baths: 2,
-      areaSqm: 60,
-      rating: 4.9,
-      views: 2103,
-    ),
-    const Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&q=80',
-      priceLak: 3200000,
-      title: 'ເຮືອນກວ້າງຂວາງ ພ້ອມສວນ',
-      location: 'ສີໂຄດຕະບອງ, ວຽງຈັນ',
-      beds: 3,
-      baths: 2,
-      areaSqm: 120,
-      rating: 4.7,
-      views: 1560,
-    ),
-    const Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80',
-      priceLak: 4500000,
-      title: 'ວິນລາສ່ວນຕົວ ພ້ອມສະລອຍນ້ຳ',
-      location: 'ຫາດຊາຍຟອງ, ວຽງຈັນ',
-      beds: 4,
-      baths: 3,
-      areaSqm: 200,
-      rating: 4.9,
-      views: 980,
-    ),
-  ];
+  List<Property> _recommended = [];
+  List<Property> _newestListings = [];
+  bool _loading = true;
+  bool _error = false;
 
-  static const _newestListings = [
-    Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=400&q=80',
-      priceLak: 1600000,
-      title: 'ຫ້ອງນອນດຽວ ສ່ອງແສງດີ ໃກ້ຕະຫລາດເຊົ້າ',
-      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
-      beds: 1,
-      baths: 1,
-      areaSqm: 30,
-      rating: 4.5,
-      views: 320,
-    ),
-    Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80',
-      priceLak: 2100000,
-      title: 'ຄອນໂດໃໝ່ ພ້ອມເຟີນິເຈີ',
-      location: 'ສີສັດຕະນາກ, ວຽງຈັນ',
-      beds: 2,
-      baths: 1,
-      areaSqm: 50,
-      rating: 4.7,
-      views: 210,
-    ),
-    Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80',
-      priceLak: 2800000,
-      title: 'ທາວເຮົາສ໌ຕົກແຕ່ງໃໝ່',
-      location: 'ໄຊເສດຖາ, ວຽງຈັນ',
-      beds: 3,
-      baths: 2,
-      areaSqm: 90,
-      rating: 4.6,
-      views: 150,
-    ),
-    Property(
-      imageUrl:
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80',
-      priceLak: 1400000,
-      title: 'ສະຕູດິໂອທັນສະໄໝ ໃຈກາງເມືອງ',
-      location: 'ຈັນທະບູລີ, ວຽງຈັນ',
-      beds: 1,
-      baths: 1,
-      areaSqm: 28,
-      rating: 4.4,
-      views: 95,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadProperties();
+  }
+
+  Future<void> _loadProperties() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final results = await Future.wait([
+        PropertyRepository.fetchRecommended(),
+        PropertyRepository.fetchNewest(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _recommended = results[0];
+        _newestListings = results[1];
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
 
   static const _trendingLocations = [
     (
@@ -186,31 +108,19 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  static final _recentlyViewed = [
-    (
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=200&q=80',
-      '1,500,000',
-    ),
-    (
-      'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=200&q=80',
-      '2,200,000',
-    ),
-    (
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=200&q=80',
-      '1,000,000',
-    ),
-    (
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=200&q=80',
-      '3,500,000',
-    ),
-    (
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=200&q=80',
-      '1,800,000',
-    ),
-  ];
+  List<Property> get _recentlyViewed =>
+      [..._recommended, ..._newestListings].take(5).toList();
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryGreen),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: TweenAnimationBuilder<double>(
@@ -246,7 +156,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SliverPersistentHeader(
                 pinned: true,
-                delegate: _StickySearchBarDelegate(),
+                delegate: _StickySearchBarDelegate(
+                  onSearchTap: () => widget.onNavigate(1),
+                ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -287,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       horizontal: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF9FAFB),
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Column(
@@ -328,37 +240,41 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 320,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _recommended.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (context, i) =>
-                        PropertyCard(property: _recommended[i]),
+                  child: _error
+                      ? ErrorState(onRetry: _loadProperties)
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _recommended.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 14),
+                          itemBuilder: (context, i) =>
+                              PropertyCard(property: _recommended[i]),
+                        ),
+                ),
+              ),
+              if (!_error) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
+                    child: _SectionHeader(title: 'ລາຍການໃໝ່ລ່າສຸດ'),
                   ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
-                  child: _SectionHeader(title: 'ລາຍການໃໝ່ລ່າສຸດ'),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 320,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _newestListings.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (context, i) =>
-                        PropertyCard(property: _newestListings[i]),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 320,
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _newestListings.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 14),
+                      itemBuilder: (context, i) =>
+                          PropertyCard(property: _newestListings[i]),
+                    ),
                   ),
                 ),
-              ),
+              ],
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
@@ -401,8 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: _recentlyViewed.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, i) {
-                      final (url, price) = _recentlyViewed[i];
-                      return _RecentThumb(imageUrl: url, price: price);
+                      return _RecentThumb(property: _recentlyViewed[i]);
                     },
                   ),
                 ),
@@ -410,36 +325,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: _navIndex,
-        onTap: (i) {
-          if (i == 1) {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
-            return;
-          }
-          if (i == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PostListingScreen()),
-            );
-            return;
-          }
-          if (i == 3) {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const MessagesScreen()));
-            return;
-          }
-          if (i == 4) {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
-            return;
-          }
-          setState(() => _navIndex = i);
-        },
       ),
     );
   }
@@ -451,13 +336,13 @@ class _TopBar extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(Icons.location_on, color: AppColors.primaryGreen, size: 22),
+        Icon(Icons.location_on, color: AppColors.primaryGreen, size: 22),
         const SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'ທີ່ຢູ່ປັດຈຸບັນ',
               style: TextStyle(
                 fontSize: 11,
@@ -467,7 +352,7 @@ class _TopBar extends StatelessWidget {
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Text(
                   'ນະຄອນຫຼວງວຽງຈັນ, ລາວ',
                   style: TextStyle(
@@ -489,7 +374,7 @@ class _TopBar extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            const Icon(
+            Icon(
               Icons.notifications_none_rounded,
               size: 26,
               color: AppColors.textPrimary,
@@ -500,7 +385,7 @@ class _TopBar extends StatelessWidget {
               child: Container(
                 width: 9,
                 height: 9,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.success,
                   shape: BoxShape.circle,
                 ),
@@ -527,7 +412,7 @@ class _Brand extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
-          text: const TextSpan(
+          text: TextSpan(
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
@@ -546,7 +431,7 @@ class _Brand extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        const Text(
+        Text(
           'ຄົ້ນຫາທີ່ຢູ່ອາໄສທີ່ດີທີ່ສຸດສຳລັບທ່ານ',
           style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
         ),
@@ -556,6 +441,10 @@ class _Brand extends StatelessWidget {
 }
 
 class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
+  const _StickySearchBarDelegate({required this.onSearchTap});
+
+  final VoidCallback onSearchTap;
+
   @override
   double get minExtent => 68;
   @override
@@ -570,17 +459,19 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
     return Container(
       color: AppColors.background,
       padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-      child: const _SearchBar(),
+      child: _SearchBar(onTap: onSearchTap),
     );
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
-      false;
+  bool shouldRebuild(covariant _StickySearchBarDelegate oldDelegate) =>
+      onSearchTap != oldDelegate.onSearchTap;
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar();
+  const _SearchBar({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -588,14 +479,12 @@ class _SearchBar extends StatelessWidget {
       children: [
         Expanded(
           child: Material(
-            color: const Color(0xFFF9FAFB),
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(24),
             elevation: 0,
             shadowColor: Colors.transparent,
             child: InkWell(
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const SearchScreen())),
+              onTap: onTap,
               borderRadius: BorderRadius.circular(24),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -612,13 +501,13 @@ class _SearchBar extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.search_rounded,
                       color: AppColors.textSecondary,
                       size: 22,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'ຄົ້ນຫາອາພາດເມັນ, ເຮືອນ, ຄອນໂດ...',
                         style: TextStyle(
@@ -632,12 +521,15 @@ class _SearchBar extends StatelessWidget {
                       child: InkWell(
                         onTap: () {},
                         borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.tune_rounded,
-                            color: AppColors.textSecondary,
-                            size: 20,
+                        child: Tooltip(
+                          message: 'ຕົວກອງ',
+                          child: Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.tune_rounded,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -657,13 +549,16 @@ class _SearchBar extends StatelessWidget {
           child: InkWell(
             onTap: () {},
             customBorder: const CircleBorder(),
-            child: const SizedBox(
-              width: 52,
-              height: 52,
-              child: Icon(
-                Icons.mic_none_rounded,
-                color: Colors.white,
-                size: 24,
+            child: const Tooltip(
+              message: 'ຄົ້ນຫາດ້ວຍສຽງ',
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: Icon(
+                  Icons.mic_none_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -763,7 +658,7 @@ class _BannerSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [AppColors.accent, AppColors.primaryGreen],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -821,7 +716,7 @@ class _BannerSlide extends StatelessWidget {
                 onTap: () {},
                 borderRadius: BorderRadius.circular(14),
                 splashColor: AppColors.primaryGreen.withValues(alpha: 0.15),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   child: Text(
                     'ສຳຫຼວດເລີຍ',
@@ -859,7 +754,7 @@ class _SectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -869,7 +764,7 @@ class _SectionHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   subtitle!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     color: AppColors.textSecondary,
                   ),
@@ -883,7 +778,7 @@ class _SectionHeader extends StatelessWidget {
           child: InkWell(
             onTap: () {},
             borderRadius: BorderRadius.circular(8),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -916,7 +811,7 @@ class _MapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
       ),
       padding: const EdgeInsets.all(12),
@@ -943,7 +838,7 @@ class _MapCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'ຄົ້ນຫາຊັບສິນໃກ້ທ່ານ',
                   style: TextStyle(
                     fontSize: 14,
@@ -952,7 +847,7 @@ class _MapCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'ສຳຫຼວດລາຍການເທິງແຜນທີ່ອ້ອມຂ້າງທ່ານ.',
                   style: TextStyle(
                     fontSize: 11.5,
@@ -1056,62 +951,73 @@ class _MapPin extends StatelessWidget {
 }
 
 class _RecentThumb extends StatelessWidget {
-  const _RecentThumb({required this.imageUrl, required this.price});
+  const _RecentThumb({required this.property});
 
-  final String imageUrl;
-  final String price;
+  final Property property;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        children: [
-          Image.network(imageUrl, width: 96, height: 96, fit: BoxFit.cover),
-          Positioned(
-            top: 6,
-            right: 6,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.favorite_border,
-                size: 12,
-                color: AppColors.textPrimary,
-              ),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PropertyDetailScreen(property: property),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Image.network(
+              property.imageUrl,
+              width: 96,
+              height: 96,
+              fit: BoxFit.cover,
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withValues(alpha: 0.6),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                ),
-              ),
-              child: Text(
-                '$price ກີບ',
-                style: const TextStyle(
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
                   color: Colors.white,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.favorite_border,
+                  size: 12,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.6),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                ),
+                child: Text(
+                  '${property.formattedPrice} ກີບ',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,10 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:home_lao/main.dart';
 
 void main() {
-  testWidgets('HomeLao home screen renders', (WidgetTester tester) async {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    // EmptyLocalStorage avoids touching the filesystem/Hive so this stays a
+    // pure widget test; no real network call happens on initialize itself.
+    await Supabase.initialize(
+      url: 'https://example.supabase.co',
+      publishableKey: 'test-publishable-key',
+      authOptions: const FlutterAuthClientOptions(
+        localStorage: EmptyLocalStorage(),
+      ),
+    );
+  });
+
+  testWidgets('boots to the login screen when signed out', (tester) async {
     await tester.pumpWidget(const HomeLaoApp());
-    expect(find.text('Find your perfect place to live'), findsOneWidget);
+    await tester.pump();
+
+    expect(find.text('ເຂົ້າສູ່ລະບົບ'), findsOneWidget);
   });
 }

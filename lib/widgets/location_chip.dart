@@ -16,7 +16,7 @@ class LocationChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(30),
       shadowColor: Colors.black.withValues(alpha: 0.06),
       elevation: 1.5,
@@ -33,7 +33,7 @@ class LocationChip extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,

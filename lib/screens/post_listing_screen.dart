@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/storage_repository.dart';
 import '../theme/app_theme.dart';
 
 class PostListingScreen extends StatefulWidget {
@@ -20,6 +23,10 @@ class _PostListingScreenState extends State<PostListingScreen> {
 
   String? _selectedType;
   final List<String> _photos = [];
+  bool _submitting = false;
+  bool _uploadingPhoto = false;
+
+  static const _maxPhotos = 6;
 
   static const _typeOptions = [
     (Icons.apartment_rounded, 'ອາພາດເມັນ'),
@@ -29,15 +36,6 @@ class _PostListingScreenState extends State<PostListingScreen> {
     (Icons.holiday_village_rounded, 'ວິນລາ'),
     (Icons.chair_rounded, 'ຫ້ອງການ'),
     (Icons.map_rounded, 'ທີ່ດິນ'),
-  ];
-
-  static const _photoPool = [
-    'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=300&q=80',
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&q=80',
-    'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=300&q=80',
-    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&q=80',
-    'https://images.unsplash.com/photo-1560184897-ae75f418493e?w=300&q=80',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=300&q=80',
   ];
 
   @override
@@ -52,16 +50,49 @@ class _PostListingScreenState extends State<PostListingScreen> {
     super.dispose();
   }
 
-  void _addPhoto() {
-    if (_photos.length >= _photoPool.length) return;
-    setState(() => _photos.add(_photoPool[_photos.length]));
+  Future<void> _addPhoto() async {
+    if (_photos.length >= _maxPhotos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ເພີ່ມຮູບໄດ້ສູງສຸດ $_maxPhotos ໃບ')),
+      );
+      return;
+    }
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final ext = file.name.contains('.')
+          ? file.name.split('.').last.toLowerCase()
+          : 'jpg';
+      final url = await StorageRepository.uploadImage(
+        bytes: bytes,
+        folder: 'properties',
+        extension: ext,
+      );
+      if (!mounted) return;
+      setState(() {
+        _photos.add(url);
+        _uploadingPhoto = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _uploadingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ອັບໂຫລດຮູບບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   void _removePhoto(int i) {
     setState(() => _photos.removeAt(i));
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final formOk = _formKey.currentState!.validate();
     if (_photos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,12 +108,41 @@ class _PostListingScreenState extends State<PostListingScreen> {
     }
     if (!formOk) return;
 
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    setState(() => _submitting = true);
+    try {
+      if (userId != null) {
+        await Supabase.instance.client.from('properties').insert({
+          'owner_id': userId,
+          'image_url': _photos.first,
+          'price_lak': int.tryParse(_priceController.text.trim()) ?? 0,
+          'title': _titleController.text.trim(),
+          'location': _locationController.text.trim(),
+          'beds': int.tryParse(_bedsController.text.trim()) ?? 0,
+          'baths': int.tryParse(_bathsController.text.trim()) ?? 0,
+          'area_sqm': int.tryParse(_areaController.text.trim()) ?? 0,
+          'rating': 0,
+          'views': 0,
+          'description': _descController.text.trim(),
+        });
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ລົງປະກາດບໍ່ສຳເລັດ: $e')));
+      return;
+    }
+    if (!context.mounted) return;
+    setState(() => _submitting = false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
-          children: const [
+          children: [
             Icon(Icons.check_circle_rounded, color: AppColors.primaryGreen),
             SizedBox(width: 10),
             Text('ລົງປະກາດສຳເລັດ'),
@@ -95,7 +155,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text(
+            child: Text(
               'ຕົກລົງ',
               style: TextStyle(
                 color: AppColors.primaryGreen,
@@ -120,23 +180,26 @@ class _PostListingScreenState extends State<PostListingScreen> {
               child: Row(
                 children: [
                   Material(
-                    color: const Color(0xFFF9FAFB),
+                    color: AppColors.surface,
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 18,
-                          color: AppColors.textPrimary,
+                      child: Tooltip(
+                        message: 'ກັບຄືນ',
+                        child: Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 18,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'ລົງປະກາດ',
                     style: TextStyle(
                       fontSize: 18,
@@ -159,6 +222,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                       const SizedBox(height: 8),
                       _PhotoRow(
                         photos: _photos,
+                        uploading: _uploadingPhoto,
                         onAdd: _addPhoto,
                         onRemove: _removePhoto,
                       ),
@@ -256,7 +320,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.background,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.06),
@@ -269,19 +333,28 @@ class _PostListingScreenState extends State<PostListingScreen> {
                 color: AppColors.primaryGreen,
                 borderRadius: BorderRadius.circular(14),
                 child: InkWell(
-                  onTap: _submit,
+                  onTap: _submitting ? null : _submit,
                   borderRadius: BorderRadius.circular(14),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                     child: Center(
-                      child: Text(
-                        'ລົງປະກາດ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'ລົງປະກາດ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -302,7 +375,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13.5,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
@@ -333,15 +406,12 @@ class _FormInput extends StatelessWidget {
       validator: validator,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
+      style: TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          fontSize: 13.5,
-          color: AppColors.textSecondary,
-        ),
+        hintStyle: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
         filled: true,
-        fillColor: const Color(0xFFF9FAFB),
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -380,12 +450,12 @@ class _NumberField extends StatelessWidget {
           controller: controller,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: '0',
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: TextStyle(color: AppColors.textSecondary),
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
+            fillColor: AppColors.surface,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
@@ -449,12 +519,14 @@ class _TypeChip extends StatelessWidget {
 class _PhotoRow extends StatelessWidget {
   const _PhotoRow({
     required this.photos,
+    required this.uploading,
     required this.onAdd,
     required this.onRemove,
   });
 
   final List<String> photos;
-  final VoidCallback onAdd;
+  final bool uploading;
+  final Future<void> Function() onAdd;
   final ValueChanged<int> onRemove;
 
   @override
@@ -465,11 +537,11 @@ class _PhotoRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           Material(
-            color: const Color(0xFFF9FAFB),
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: onAdd,
+              onTap: uploading ? null : onAdd,
               child: Container(
                 width: 88,
                 height: 88,
@@ -480,25 +552,36 @@ class _PhotoRow extends StatelessWidget {
                     width: 1.4,
                   ),
                 ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_a_photo_rounded,
-                      color: AppColors.primaryGreen,
-                      size: 22,
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'ເພີ່ມຮູບ',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryGreen,
+                child: uploading
+                    ? Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo_rounded,
+                            color: AppColors.primaryGreen,
+                            size: 22,
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'ເພີ່ມຮູບ',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ),
@@ -524,12 +607,15 @@ class _PhotoRow extends StatelessWidget {
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: () => onRemove(i),
-                          child: const Padding(
-                            padding: EdgeInsets.all(3),
-                            child: Icon(
-                              Icons.close_rounded,
-                              size: 14,
-                              color: Colors.white,
+                          child: const Tooltip(
+                            message: 'ລຶບຮູບ',
+                            child: Padding(
+                              padding: EdgeInsets.all(3),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),

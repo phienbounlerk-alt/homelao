@@ -1,64 +1,51 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../data/conversation_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_state.dart';
 
-class _Conversation {
-  const _Conversation({
-    required this.name,
-    required this.avatarUrl,
-    required this.lastMessage,
-    required this.time,
-    this.unread = 0,
-  });
+const _defaultAvatarUrl =
+    'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80';
 
-  final String name;
-  final String avatarUrl;
-  final String lastMessage;
-  final String time;
-  final int unread;
-}
-
-class MessagesScreen extends StatelessWidget {
+class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
-  static const _conversations = [
-    _Conversation(
-      name: 'ສົມໄຊ (ນາຍໜ້າ)',
-      avatarUrl:
-          'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
-      lastMessage: 'ແມ່ນແລ້ວ, ອາພາດເມັນຍັງວ່າງໃຫ້ເບິ່ງຢູ່.',
-      time: '9:41',
-      unread: 2,
-    ),
-    _Conversation(
-      name: 'ນົກ (ເຈົ້າຂອງ)',
-      avatarUrl:
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
-      lastMessage: 'ໄດ້ເລີຍ, ພວກເຮົາຍ້າຍເວລານັດເປັນ 3 ໂມງແລງມື້ອື່ນໄດ້.',
-      time: 'ມື້ວານນີ້',
-    ),
-    _Conversation(
-      name: 'HomeLao Support',
-      avatarUrl:
-          'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=100&q=80',
-      lastMessage: 'ລາຍການ "ຫ້ອງເຊົ່າອົບອຸ່ນ ສີສັດຕະນາກ" ຂອງທ່ານລົງປະກາດແລ້ວ.',
-      time: 'ມື້ວານນີ້',
-    ),
-    _Conversation(
-      name: 'ບຸນມີ (ນາຍໜ້າ)',
-      avatarUrl:
-          'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80',
-      lastMessage: 'ຂອບໃຈທີ່ສົນໃຈວິນລາຫລັງນີ້!',
-      time: 'ວັນຈັນ',
-      unread: 1,
-    ),
-    _Conversation(
-      name: 'ດາລາ (ເຈົ້າຂອງ)',
-      avatarUrl:
-          'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80',
-      lastMessage: 'ຜົນຄິດໄລ່ເງິນກູ້ເບິ່ງດີຢູ່.',
-      time: 'ວັນອາທິດ',
-    ),
-  ];
+  @override
+  State<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends State<MessagesScreen> {
+  List<Map<String, dynamic>> _conversations = [];
+  bool _loading = true;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final rows = await ConversationRepository.fetchConversations();
+      if (!mounted) return;
+      setState(() {
+        _conversations = rows;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,150 +56,189 @@ class MessagesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 20, 12),
-              child: Row(
-                children: [
-                  Material(
-                    color: const Color(0xFFF9FAFB),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => Navigator.of(context).pop(),
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 18,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'ຂໍ້ຄວາມ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Text(
+                'ຂໍ້ຄວາມ',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: _conversations.length,
-                separatorBuilder: (_, _) => const Divider(
-                  height: 1,
-                  indent: 76,
-                  color: AppColors.cardBorder,
-                ),
-                itemBuilder: (context, i) {
-                  final c = _conversations[i];
-                  return Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ChatDetailScreen(
-                              name: c.name,
-                              avatarUrl: c.avatarUrl,
+              child: _loading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
+                  : _error
+                  ? ErrorState(onRetry: _load)
+                  : _conversations.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 48,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'ຍັງບໍ່ມີຂໍ້ຄວາມ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundImage: NetworkImage(c.avatarUrl),
+                          const SizedBox(height: 4),
+                          Text(
+                            'ແຊັດເຈົ້າຂອງຈາກໜ້າຊັບສິນເພື່ອເລີ່ມການສົນທະນາ',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: _conversations.length,
+                      separatorBuilder: (_, _) => Divider(
+                        height: 1,
+                        indent: 76,
+                        color: AppColors.cardBorder,
+                      ),
+                      itemBuilder: (context, i) {
+                        final c = _conversations[i];
+                        final property =
+                            c['properties'] as Map<String, dynamic>?;
+                        final messages =
+                            (c['messages'] as List).cast<Map<String, dynamic>>()
+                              ..sort(
+                                (a, b) =>
+                                    DateTime.parse(
+                                      a['created_at'] as String,
+                                    ).compareTo(
+                                      DateTime.parse(b['created_at'] as String),
+                                    ),
+                              );
+                        final lastMessage = messages.isNotEmpty
+                            ? messages.last['text'] as String
+                            : 'ເລີ່ມການສົນທະນາ';
+                        final avatarUrl =
+                            c['landlord_avatar_url'] as String? ??
+                            _defaultAvatarUrl;
+                        final name = c['landlord_name'] as String;
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.of(context)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatDetailScreen(
+                                        conversationId: c['id'] as String,
+                                        name: name,
+                                        avatarUrl: avatarUrl,
+                                        propertyTitle:
+                                            property?['title'] as String?,
+                                        propertyImageUrl:
+                                            property?['image_url'] as String?,
+                                        propertyPriceLak:
+                                            property?['price_lak'] as int?,
+                                      ),
+                                    ),
+                                  )
+                                  .then((_) => _load());
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          c.name,
+                                  CircleAvatar(
+                                    radius: 26,
+                                    backgroundImage: NetworkImage(avatarUrl),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14.5,
                                             fontWeight: FontWeight.w700,
                                             color: AppColors.textPrimary,
                                           ),
                                         ),
-                                      ),
-                                      Text(
-                                        c.time,
-                                        style: const TextStyle(
-                                          fontSize: 11.5,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          c.lastMessage,
+                                        if (property != null) ...[
+                                          const SizedBox(height: 3),
+                                          Row(
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                child: Image.network(
+                                                  property['image_url']
+                                                      as String,
+                                                  width: 16,
+                                                  height: 16,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  property['title'] as String,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        AppColors.primaryGreen,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          lastMessage,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 12.5,
-                                            color: c.unread > 0
-                                                ? AppColors.textPrimary
-                                                : AppColors.textSecondary,
-                                            fontWeight: c.unread > 0
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                          ),
-                                        ),
-                                      ),
-                                      if (c.unread > 0) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.primaryGreen,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Text(
-                                            '${c.unread}',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white,
-                                            ),
+                                            color: AppColors.textSecondary,
                                           ),
                                         ),
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -230,12 +256,22 @@ class _Bubble {
 class ChatDetailScreen extends StatefulWidget {
   const ChatDetailScreen({
     super.key,
+    required this.conversationId,
     required this.name,
     required this.avatarUrl,
+    this.propertyTitle,
+    this.propertyImageUrl,
+    this.propertyPriceLak,
   });
 
+  final String conversationId;
   final String name;
   final String avatarUrl;
+
+  /// The listing this chat is about, if any.
+  final String? propertyTitle;
+  final String? propertyImageUrl;
+  final int? propertyPriceLak;
 
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
@@ -244,26 +280,53 @@ class ChatDetailScreen extends StatefulWidget {
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final List<_Bubble> _messages = [
-    const _Bubble('ສະບາຍດີ! ຊັບສິນນີ້ຍັງວ່າງຢູ່ບໍ່?', true),
-    const _Bubble('ແມ່ນແລ້ວ, ອາພາດເມັນຍັງວ່າງໃຫ້ເບິ່ງຢູ່.', false),
-    const _Bubble('ດີເລີຍ, ຂໍນັດເບິ່ງທ້າຍອາທິດນີ້ໄດ້ບໍ່?', true),
-  ];
+  StreamSubscription<List<Map<String, dynamic>>>? _sub;
+  List<_Bubble> _messages = [];
+  bool _loading = true;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribe();
+  }
+
+  void _subscribe() {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    _sub?.cancel();
+    _sub = ConversationRepository.streamMessages(widget.conversationId).listen(
+      (rows) {
+        if (!mounted) return;
+        setState(() {
+          _messages = rows
+              .map((r) => _Bubble(r['text'] as String, r['from_me'] as bool))
+              .toList();
+          _loading = false;
+        });
+        _scrollToBottom();
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = true;
+        });
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _sub?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _send() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(_Bubble(text, true));
-      _controller.clear();
-    });
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -273,6 +336,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         );
       }
     });
+  }
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    _controller.clear();
+    try {
+      // The realtime subscription delivers the new row back to us (and to
+      // the other side) as soon as it's inserted, so no local append here.
+      await ConversationRepository.sendMessage(widget.conversationId, text);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ສົ່ງຂໍ້ຄວາມບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   @override
@@ -287,17 +366,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: Row(
                 children: [
                   Material(
-                    color: const Color(0xFFF9FAFB),
+                    color: AppColors.surface,
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 18,
-                          color: AppColors.textPrimary,
+                      child: Tooltip(
+                        message: 'ກັບຄືນ',
+                        child: Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 18,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
@@ -310,7 +392,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   const SizedBox(width: 10),
                   Text(
                     widget.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
@@ -319,58 +401,116 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
+            if (widget.propertyTitle != null)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                itemCount: _messages.length,
-                itemBuilder: (context, i) {
-                  final m = _messages[i];
-                  return Align(
-                    alignment: m.fromMe
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 5),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.72,
-                      ),
-                      decoration: BoxDecoration(
-                        color: m.fromMe
-                            ? AppColors.primaryGreen
-                            : const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(m.fromMe ? 16 : 4),
-                          bottomRight: Radius.circular(m.fromMe ? 4 : 16),
-                        ),
-                      ),
-                      child: Text(
-                        m.text,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: m.fromMe
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                        ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        widget.propertyImageUrl!,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                  );
-                },
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.propertyTitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          if (widget.propertyPriceLak != null)
+                            Text(
+                              '${_formatPrice(widget.propertyPriceLak!)} ກີບ/ເດືອນ',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            Expanded(
+              child: _loading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
+                  : _error
+                  ? ErrorState(onRetry: _subscribe)
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) {
+                        final m = _messages[i];
+                        return Align(
+                          alignment: m.fromMe
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            constraints: BoxConstraints(
+                              maxWidth:
+                                  MediaQuery.of(context).size.width * 0.72,
+                            ),
+                            decoration: BoxDecoration(
+                              color: m.fromMe
+                                  ? AppColors.primaryGreen
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: Radius.circular(m.fromMe ? 16 : 4),
+                                bottomRight: Radius.circular(m.fromMe ? 4 : 16),
+                              ),
+                            ),
+                            child: Text(
+                              m.text,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: m.fromMe
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.background,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.06),
@@ -385,18 +525,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     child: TextField(
                       controller: _controller,
                       onSubmitted: (_) => _send(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
                         hintText: 'ພິມຂໍ້ຄວາມ...',
-                        hintStyle: const TextStyle(
+                        hintStyle: TextStyle(
                           fontSize: 13.5,
                           color: AppColors.textSecondary,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
+                        fillColor: AppColors.surface,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
@@ -415,12 +555,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: _send,
-                      child: const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 20,
+                      child: const Tooltip(
+                        message: 'ສົ່ງຂໍ້ຄວາມ',
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -433,4 +576,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
     );
   }
+}
+
+String _formatPrice(int priceLak) {
+  final s = priceLak.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    buf.write(s[i]);
+  }
+  return buf.toString();
 }

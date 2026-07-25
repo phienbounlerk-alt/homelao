@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../data/favorites_store.dart';
 import '../models/property.dart';
+import '../screens/property_detail_screen.dart';
 import '../theme/app_theme.dart';
 
 class PropertyCard extends StatefulWidget {
@@ -13,22 +15,36 @@ class PropertyCard extends StatefulWidget {
 }
 
 class _PropertyCardState extends State<PropertyCard> {
-  bool _isFavorite = false;
   bool _isHovered = false;
   bool _isPressed = false;
   double _favScale = 1.0;
 
+  @override
+  void initState() {
+    super.initState();
+    FavoritesStore.instance.addListener(_onFavoritesChanged);
+  }
+
+  @override
+  void dispose() {
+    FavoritesStore.instance.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _toggleFavorite() {
-    setState(() {
-      _isFavorite = !_isFavorite;
-      _favScale = 1.35;
-    });
+    FavoritesStore.instance.toggle(widget.property.id);
+    setState(() => _favScale = 1.35);
   }
 
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final width = widget.width;
+    final isFavorite = FavoritesStore.instance.isFavorite(property.id);
     final scale = _isPressed ? 0.97 : (_isHovered ? 1.03 : 1.0);
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -37,7 +53,11 @@ class _PropertyCardState extends State<PropertyCard> {
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: () {},
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PropertyDetailScreen(property: property),
+          ),
+        ),
         child: AnimatedScale(
           scale: scale,
           duration: const Duration(milliseconds: 150),
@@ -46,7 +66,7 @@ class _PropertyCardState extends State<PropertyCard> {
             duration: const Duration(milliseconds: 180),
             width: width,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -71,7 +91,7 @@ class _PropertyCardState extends State<PropertyCard> {
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
-                          return Container(color: const Color(0xFFF3F4F6));
+                          return Container(color: AppColors.surfaceAlt);
                         },
                       ),
                     ),
@@ -94,18 +114,23 @@ class _PropertyCardState extends State<PropertyCard> {
                         child: InkWell(
                           onTap: _toggleFavorite,
                           splashColor: Colors.redAccent.withValues(alpha: 0.25),
-                          child: AnimatedScale(
-                            scale: _favScale,
-                            duration: const Duration(milliseconds: 160),
-                            curve: Curves.elasticOut,
-                            onEnd: () => setState(() => _favScale = 1.0),
-                            child: _CircleIcon(
-                              icon: _isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: _isFavorite
-                                  ? Colors.redAccent
-                                  : AppColors.textPrimary,
+                          child: Tooltip(
+                            message: isFavorite
+                                ? 'ຍົກເລີກບັນທຶກ'
+                                : 'ບັນທຶກຊັບສິນ',
+                            child: AnimatedScale(
+                              scale: _favScale,
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.elasticOut,
+                              onEnd: () => setState(() => _favScale = 1.0),
+                              child: _CircleIcon(
+                                icon: isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: isFavorite
+                                    ? Colors.redAccent
+                                    : AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ),
@@ -122,15 +147,18 @@ class _PropertyCardState extends State<PropertyCard> {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(
-                            '${property.formattedPrice} ',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryGreen,
+                          Flexible(
+                            child: Text(
+                              '${property.formattedPrice} ',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryGreen,
+                              ),
                             ),
                           ),
-                          const Text(
+                          Text(
                             'ກີບ/ເດືອນ',
                             style: TextStyle(
                               fontSize: 12,
@@ -145,7 +173,7 @@ class _PropertyCardState extends State<PropertyCard> {
                         property.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
@@ -155,7 +183,7 @@ class _PropertyCardState extends State<PropertyCard> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on_outlined,
                             size: 13,
                             color: AppColors.textSecondary,
@@ -166,7 +194,7 @@ class _PropertyCardState extends State<PropertyCard> {
                               property.location,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11.5,
                                 color: AppColors.textSecondary,
                               ),
@@ -192,15 +220,11 @@ class _PropertyCardState extends State<PropertyCard> {
                             label: '${property.areaSqm} m²',
                           ),
                           const Spacer(),
-                          const Icon(
-                            Icons.star,
-                            size: 13,
-                            color: AppColors.success,
-                          ),
+                          Icon(Icons.star, size: 13, color: AppColors.success),
                           const SizedBox(width: 2),
                           Text(
                             '${property.rating}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
@@ -209,7 +233,7 @@ class _PropertyCardState extends State<PropertyCard> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      const Divider(height: 1, color: AppColors.cardBorder),
+                      Divider(height: 1, color: AppColors.cardBorder),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -220,13 +244,13 @@ class _PropertyCardState extends State<PropertyCard> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 12,
                             color: AppColors.primaryGreen,
                           ),
                           const SizedBox(width: 2),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'ເຈົ້າຂອງຢືນຢັນແລ້ວ',
                               maxLines: 1,
@@ -238,7 +262,7 @@ class _PropertyCardState extends State<PropertyCard> {
                               ),
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.visibility_outlined,
                             size: 12,
                             color: AppColors.textSecondary,
@@ -246,7 +270,7 @@ class _PropertyCardState extends State<PropertyCard> {
                           const SizedBox(width: 2),
                           Text(
                             property.formattedViews,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
                               color: AppColors.textSecondary,
                             ),
@@ -293,10 +317,10 @@ class _Badge extends StatelessWidget {
 }
 
 class _CircleIcon extends StatelessWidget {
-  const _CircleIcon({required this.icon, this.color = AppColors.textPrimary});
+  const _CircleIcon({required this.icon, this.color});
 
   final IconData icon;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -307,7 +331,7 @@ class _CircleIcon extends StatelessWidget {
         color: Colors.white,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, size: 15, color: color),
+      child: Icon(icon, size: 15, color: color ?? AppColors.textPrimary),
     );
   }
 }
@@ -327,7 +351,7 @@ class _MetaIcon extends StatelessWidget {
         const SizedBox(width: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
       ],
     );

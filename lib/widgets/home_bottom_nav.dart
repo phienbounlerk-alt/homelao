@@ -21,7 +21,7 @@ class HomeBottomNav extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.75),
+            color: AppColors.background.withValues(alpha: 0.75),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.06),
@@ -133,10 +133,13 @@ class _AddButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: const SizedBox(
-          width: 52,
-          height: 52,
-          child: Icon(Icons.add_rounded, color: Colors.white, size: 28),
+        child: const Tooltip(
+          message: 'ລົງປະກາດຊັບສິນໃໝ່',
+          child: SizedBox(
+            width: 52,
+            height: 52,
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          ),
         ),
       ),
     );

@@ -1,9 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/favorites_store.dart';
 import '../theme/app_theme.dart';
-import 'messages_screen.dart';
+import 'booking_history_screen.dart';
+import 'edit_profile_screen.dart';
+import 'help_center_screen.dart';
+import 'login_screen.dart';
+import 'my_listings_screen.dart';
+import 'payment_methods_screen.dart';
+import 'saved_properties_screen.dart';
+import 'settings_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key, required this.onNavigate});
+
+  /// Switches the parent shell's active tab, using the same index scheme
+  /// as [HomeBottomNav].
+  final ValueChanged<int> onNavigate;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  int? _myCount;
+  int? _savedCount;
+  int? _bookingCount;
 
   static const _menuItems = [
     (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
@@ -15,11 +37,91 @@ class ProfileScreen extends StatelessWidget {
     (Icons.help_rounded, 'ສູນຊ່ວຍເຫຼືອ'),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    FavoritesStore.instance.addListener(_onFavoritesChanged);
+    _loadStats();
+  }
+
+  @override
+  void dispose() {
+    FavoritesStore.instance.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) setState(() => _savedCount = FavoritesStore.instance.count);
+  }
+
+  Future<void> _loadStats() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final client = Supabase.instance.client;
+      final results = await Future.wait([
+        client.from('properties').select('id').eq('owner_id', userId),
+        client.from('favorites').select('property_id').eq('user_id', userId),
+        client.from('bookings').select('id').eq('user_id', userId),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _myCount = (results[0] as List).length;
+        _savedCount = (results[1] as List).length;
+        _bookingCount = (results[2] as List).length;
+      });
+    } catch (_) {
+      // Leave counts at their loading placeholder on failure.
+    }
+  }
+
   void _handleTap(BuildContext context, String label) {
     if (label == 'ຂໍ້ຄວາມ') {
+      widget.onNavigate(3);
+      return;
+    }
+    if (label == 'ລາຍການຂອງຂ້ອຍ') {
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => const MessagesScreen()));
+      ).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+      return;
+    }
+    if (label == 'ຊັບສິນທີ່ບັນທຶກ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const SavedPropertiesScreen()));
+      return;
+    }
+    if (label == 'ປະຫວັດການຈອງ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const BookingHistoryScreen()));
+      return;
+    }
+    if (label == 'ວິທີການຊຳລະເງິນ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()));
+      return;
+    }
+    if (label == 'ຕັ້ງຄ່າ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+      return;
+    }
+    if (label == 'ສູນຊ່ວຍເຫຼືອ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+      return;
+    }
+    if (label == 'ແກ້ໄຂໂປຼໄຟລ໌') {
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const EditProfileScreen()))
+          .then((_) {
+            if (mounted) setState(() {});
+          });
       return;
     }
     ScaffoldMessenger.of(
@@ -37,13 +139,21 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
+            child: Text(
               'ຍົກເລີກ',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              FavoritesStore.instance.clear();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
             child: const Text(
               'ອອກຈາກລະບົບ',
               style: TextStyle(
@@ -65,66 +175,69 @@ class ProfileScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
-            Row(
-              children: [
-                Material(
-                  color: const Color(0xFFF9FAFB),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 18,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'ໂປຼໄຟລ໌',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+            Text(
+              'ໂປຼໄຟລ໌',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 20),
             Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 34,
+                  backgroundColor: AppColors.secondaryGreen,
                   backgroundImage: NetworkImage(
-                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
+                    Supabase
+                                .instance
+                                .client
+                                .auth
+                                .currentUser
+                                ?.userMetadata?['avatar_url']
+                            as String? ??
+                        defaultAvatarUrl,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ສົມສະໜຸກ ພ.',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'somsanouk@example.com',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                  child: Builder(
+                    builder: (context) {
+                      final user = Supabase.instance.client.auth.currentUser;
+                      final isAnon = user?.isAnonymous ?? true;
+                      final name = isAnon
+                          ? 'ແຂກ'
+                          : (user?.userMetadata?['name'] as String?)
+                                    ?.isNotEmpty ==
+                                true
+                          ? user!.userMetadata!['name'] as String
+                          : (user?.email ?? 'ແຂກ');
+                      final subtitle = isAnon
+                          ? 'ເຂົ້າໃຊ້ແບບບໍ່ຕ້ອງລົງທະບຽນ'
+                          : (user?.email ?? '');
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 Material(
@@ -133,12 +246,15 @@ class ProfileScreen extends StatelessWidget {
                   child: InkWell(
                     customBorder: const CircleBorder(),
                     onTap: () => _handleTap(context, 'ແກ້ໄຂໂປຼໄຟລ໌'),
-                    child: const Padding(
-                      padding: EdgeInsets.all(9),
-                      child: Icon(
-                        Icons.edit_rounded,
-                        size: 16,
-                        color: AppColors.primaryGreen,
+                    child: Tooltip(
+                      message: 'ແກ້ໄຂໂປຼໄຟລ໌',
+                      child: Padding(
+                        padding: EdgeInsets.all(9),
+                        child: Icon(
+                          Icons.edit_rounded,
+                          size: 16,
+                          color: AppColors.primaryGreen,
+                        ),
                       ),
                     ),
                   ),
@@ -149,21 +265,30 @@ class ProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Expanded(
-                    child: _StatItem(value: '3', label: 'ລາຍການ'),
+                    child: _StatItem(
+                      value: _myCount?.toString() ?? '—',
+                      label: 'ລາຍການ',
+                    ),
                   ),
-                  _StatDivider(),
+                  const _StatDivider(),
                   Expanded(
-                    child: _StatItem(value: '12', label: 'ບັນທຶກ'),
+                    child: _StatItem(
+                      value: _savedCount?.toString() ?? '—',
+                      label: 'ບັນທຶກ',
+                    ),
                   ),
-                  _StatDivider(),
+                  const _StatDivider(),
                   Expanded(
-                    child: _StatItem(value: '5', label: 'ການຈອງ'),
+                    child: _StatItem(
+                      value: _bookingCount?.toString() ?? '—',
+                      label: 'ການຈອງ',
+                    ),
                   ),
                 ],
               ),
@@ -171,7 +296,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 22),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -183,7 +308,7 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => _handleTap(context, _menuItems[i].$2),
                     ),
                     if (i != _menuItems.length - 1)
-                      const Divider(
+                      Divider(
                         height: 1,
                         indent: 56,
                         color: AppColors.cardBorder,
@@ -241,7 +366,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: AppColors.primaryGreen,
@@ -250,10 +375,7 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11.5,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -295,14 +417,14 @@ class _MenuTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
                 color: AppColors.textSecondary,

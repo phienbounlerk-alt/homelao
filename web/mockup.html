@@ -1,0 +1,294 @@
+<title>HomeLao — iPhone 16 Pro Max</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  min-height:100vh;
+  background:#e8e8ea;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  overflow:visible;
+}
+
+/* Auto-scale phone to fit any viewport */
+.wrapper{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  width:100vw;
+  height:100vh;
+}
+#restartBtn {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:#16A34A; color:#fff; border:none; border-radius:50px;
+  padding:10px 24px; font-size:13px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 4px 16px rgba(22,163,74,0.4);
+  transition: background 0.15s, opacity 0.15s;
+  font-family:'Noto Sans Lao','Phetsarath OT',-apple-system,BlinkMacSystemFont,sans-serif;
+  z-index:9999;
+  white-space:nowrap;
+}
+#restartBtn:hover { background:#15803D; }
+#restartBtn:active { transform:scale(0.95); }
+.scaler{
+  transform-origin:center center;
+}
+
+/*
+  iPhone 16 Pro Max real screen proportions:
+  Phone body: 376 × 790px  ratio=0.4759
+  Bezel: 11px all sides
+  Screen: 354 × 768px  ratio=0.461
+  Scale: 354÷430 = 0.8233
+*/
+
+.phone{
+  position:relative;
+  width:388px;
+  height:790px;
+  flex-shrink:0;
+  overflow:hidden;
+  clip-path:inset(0 round 54px);
+}
+.bezel-cover{
+  position:absolute;
+  inset:0;
+  border-radius:54px;
+  box-shadow:inset 0 0 0 17px #111;
+  pointer-events:none;
+  z-index:5;
+}
+
+.body-bg{
+  position:absolute;
+  left:6px;right:6px;top:0;bottom:0;
+  background:#fff;
+  border-radius:54px;
+  z-index:0;
+}
+
+.screen{
+  position:absolute;
+  left:17px;
+  right:17px;
+  top:11px;
+  bottom:11px;
+  border-radius:45px;
+  overflow:hidden;
+  background:#fff;
+  z-index:1;
+  clip-path:inset(0 round 45px);
+  -webkit-mask-image:linear-gradient(#fff,#fff);
+  mask-image:linear-gradient(#fff,#fff);
+  isolation:isolate;
+}
+
+.screen iframe{
+  position:absolute;
+  top:49px;left:0;
+  width:430px;
+  height:853px;
+  border:none;
+  transform-origin:top left;
+  transform:scale(0.8233);
+  display:block;
+  scrollbar-width:none;
+}
+.screen iframe::-webkit-scrollbar { display:none; }
+
+.sb{
+  position:absolute;top:0;left:0;right:0;height:49px;
+  z-index:50;pointer-events:none;
+  background:#16A34A;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px 0;
+}
+.sb-time{font-size:15px;font-weight:700;letter-spacing:-0.3px;color:#fff;}
+.sb-icons{display:flex;align-items:center;gap:6px;}
+
+.island{
+  position:absolute;
+  top:14px;
+  left:50%;transform:translateX(-50%);
+  width:104px;height:30px;
+  background:#000;
+  border-radius:14px;
+  z-index:60;
+}
+.island::before{
+  content:'';
+  position:absolute;
+  left:16px;top:50%;transform:translateY(-50%);
+  width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#1a2a3a,#060c12);
+}
+.island::after{
+  content:'';
+  position:absolute;
+  right:10px;top:50%;transform:translateY(-50%);
+  width:10px;height:10px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#0f2840,#050d18);
+  box-shadow:inset 0 0 2px rgba(60,130,255,0.4), 0 0 0 1.5px #0a0a0a;
+}
+
+.home-bar{
+  position:absolute;
+  bottom:8px;left:50%;transform:translateX(-50%);
+  width:120px;height:5px;
+  background:rgba(0,0,0,0.18);
+  border-radius:3px;
+  z-index:60;pointer-events:none;
+}
+
+.frame-svg{
+  position:absolute;
+  left:0;top:0;
+  width:388px;
+  z-index:10;
+  pointer-events:none;
+  overflow:visible;
+}
+
+</style>
+
+
+<div class="wrapper"><div class="scaler" id="scaler">
+<div class="phone" id="phone">
+
+  <!-- White body background -->
+  <div class="body-bg"></div>
+  <!-- Bezel cover to block iframe fixed-pos bleed -->
+  <div class="bezel-cover"></div>
+
+  <!-- Screen with real app -->
+  <div class="screen">
+    <iframe
+      src="http://localhost:8090"
+      scrolling="yes"
+      allow="same-origin"
+      title="HomeLao App"
+    ></iframe>
+
+    <!-- Edge mask to stop backdrop-blur bleed -->
+    <div style="position:absolute;inset:0;border-radius:45px;box-shadow:inset 0 0 0 3px #fff;pointer-events:none;z-index:9;"></div>
+
+    <!-- Status bar -->
+    <div class="sb">
+      <span class="sb-time">9:41</span>
+      <div class="sb-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="#fff">
+          <rect x="0" y="8" width="3" height="4" rx=".6" opacity=".3"/>
+          <rect x="4.5" y="5" width="3" height="7" rx=".6" opacity=".55"/>
+          <rect x="9" y="2" width="3" height="10" rx=".6" opacity=".8"/>
+          <rect x="13.5" y="0" width="3" height="12" rx=".6"/>
+        </svg>
+        <svg width="15" height="12" viewBox="0 0 16 12" fill="#fff">
+          <circle cx="8" cy="11" r="1.5"/>
+          <path d="M8 7C6.2 7 4.6 7.7 3.5 8.9L4.8 10.1C5.7 9.2 6.8 8.7 8 8.7s2.3.5 3.2 1.4l1.3-1.2C11.4 7.7 9.8 7 8 7z" opacity=".7"/>
+          <path d="M8 3C5.2 3 2.7 4.2 1 6.2l1.3 1.2C3.8 5.6 5.8 4.7 8 4.7s4.2.9 5.7 2.7L15 6.2C13.3 4.2 10.8 3 8 3z" opacity=".4"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 26 12" fill="#fff">
+          <rect x="0" y="1.5" width="22" height="9" rx="2.5" stroke="#000" stroke-width="1" fill="none" opacity=".5"/>
+          <rect x="22.5" y="3.5" width="2.5" height="5" rx="1.2" opacity=".4"/>
+          <rect x="1.5" y="3" width="18" height="6" rx="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dynamic Island -->
+    <div class="island"></div>
+
+    <!-- Home bar -->
+    <div class="home-bar"></div>
+  </div>
+
+  <svg class="frame-svg" viewBox="0 0 388 790" xmlns="http://www.w3.org/2000/svg" style="height:790px">
+    <defs>
+      <filter id="f1" x="-8%" y="-4%" width="116%" height="110%">
+        <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="rgba(0,0,0,0.20)"/>
+        <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="rgba(0,0,0,0.10)"/>
+      </filter>
+    </defs>
+
+    <path
+      fill-rule="evenodd"
+      fill="#111"
+      filter="url(#f1)"
+      d="
+        M60,0 L328,0 Q382,0 382,54 L382,736 Q382,790 328,790 L60,790 Q6,790 6,736 L6,54 Q6,0 60,0 Z
+        M62,11 L326,11 Q371,11 371,56 L371,734 Q371,779 326,779 L62,779 Q17,779 17,734 L17,56 Q17,11 62,11 Z
+      "
+    />
+
+    <path
+      fill="none"
+      stroke="rgba(255,255,255,0.15)"
+      stroke-width="0.8"
+      d="M60,0.4 L328,0.4 Q381.6,0.4 381.6,54 L381.6,736 Q381.6,789.6 328,789.6 L60,789.6 Q6.4,789.6 6.4,736 L6.4,54 Q6.4,0.4 60,0.4 Z"
+    />
+
+    <!-- LEFT SIDE BUTTONS -->
+    <rect x="0" y="148" width="8" height="46" rx="4" fill="#111"/>
+    <rect x="0.5" y="148.5" width="6.5" height="45" rx="3.5" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+
+    <rect x="0" y="214" width="8" height="78" rx="4" fill="#111"/>
+    <rect x="0.5" y="214.5" width="6.5" height="77" rx="3.5" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+
+    <rect x="0" y="308" width="8" height="78" rx="4" fill="#111"/>
+    <rect x="0.5" y="308.5" width="6.5" height="77" rx="3.5" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+
+    <!-- RIGHT SIDE BUTTONS -->
+    <rect x="380" y="244" width="8" height="108" rx="4" fill="#111"/>
+    <rect x="380.5" y="244.5" width="6.5" height="107" rx="3.5" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+
+    <rect x="380" y="428" width="8" height="70" rx="4" fill="#111"/>
+    <rect x="380.5" y="428.5" width="6.5" height="69" rx="3.5" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+    <rect x="381" y="459" width="4" height="10" rx="2" fill="rgba(255,255,255,0.08)"/>
+
+    <!-- BOTTOM DETAILS -->
+    <rect x="163" y="782" width="56" height="8" rx="4" fill="#0d0d0d"/>
+    <rect x="168" y="784" width="46" height="4" rx="2" fill="#080808"/>
+    <circle cx="118" cy="786" r="2.5" fill="#0d0d0d"/>
+    <circle cx="127" cy="786" r="2.5" fill="#0d0d0d"/>
+    <circle cx="136" cy="786" r="2.5" fill="#0d0d0d"/>
+    <circle cx="252" cy="786" r="2.5" fill="#0d0d0d"/>
+    <circle cx="261" cy="786" r="2.5" fill="#0d0d0d"/>
+    <circle cx="270" cy="786" r="2.5" fill="#0d0d0d"/>
+  </svg>
+
+</div>
+</div>
+
+<button id="restartBtn" onclick="restartApp()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v6"/><path d="M4.93 4.93A10 10 0 1 0 19.07 4.93"/></svg>
+</button>
+
+</div>
+<script>
+function restartApp() {
+  const btn = document.getElementById('restartBtn');
+  const f = document.querySelector('iframe');
+  btn.style.opacity = '0.5';
+  btn.disabled = true;
+  f.src = 'about:blank';
+  setTimeout(() => {
+    f.src = 'https://phienbounlerk-alt.github.io/homelao/?fresh=1';
+    setTimeout(() => { btn.style.opacity='1'; btn.disabled=false; }, 800);
+  }, 300);
+}
+
+function autoScale(){
+  const PHONE_W=388, PHONE_H=790, BTN_H=44, GAP=20, PAD=24;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const totalH = PHONE_H + GAP + BTN_H;
+  const s=Math.min((vw-PAD*2)/PHONE_W,(vh-PAD*2)/totalH,1.8);
+  document.getElementById('scaler').style.transform='scale('+s+')';
+}
+autoScale();
+window.addEventListener('resize',autoScale);
+</script>

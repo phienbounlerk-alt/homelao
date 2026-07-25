@@ -1,5 +1,6 @@
 class Property {
   const Property({
+    required this.id,
     required this.imageUrl,
     required this.priceLak,
     required this.title,
@@ -12,8 +13,42 @@ class Property {
     this.verified = true,
     this.landlordAvatarUrl =
         'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
+    this.landlordName = 'ສົມໄຊ ວົງພະຈັນ',
+    this.description =
+        'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '
+        'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
+        'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
   });
 
+  /// Supabase-issued row id (`properties.id`).
+  factory Property.fromMap(Map<String, dynamic> map) {
+    return Property(
+      id: map['id'] as String,
+      imageUrl: map['image_url'] as String,
+      priceLak: map['price_lak'] as int,
+      title: map['title'] as String,
+      location: map['location'] as String,
+      beds: map['beds'] as int,
+      baths: map['baths'] as int,
+      areaSqm: map['area_sqm'] as int,
+      rating: (map['rating'] as num).toDouble(),
+      views: map['views'] as int,
+      verified: map['verified'] as bool? ?? true,
+      landlordAvatarUrl:
+          map['landlord_avatar_url'] as String? ??
+          'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
+      landlordName: (map['landlord_name'] as String?)?.isNotEmpty == true
+          ? map['landlord_name'] as String
+          : 'ສົມໄຊ ວົງພະຈັນ',
+      description: (map['description'] as String?)?.isNotEmpty == true
+          ? map['description'] as String
+          : 'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '
+                'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
+                'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
+    );
+  }
+
+  final String id;
   final String imageUrl;
   final int priceLak;
   final String title;
@@ -25,6 +60,8 @@ class Property {
   final int views;
   final bool verified;
   final String landlordAvatarUrl;
+  final String landlordName;
+  final String description;
 
   String get formattedPrice {
     final s = priceLak.toString();
