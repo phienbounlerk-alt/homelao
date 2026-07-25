@@ -494,7 +494,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   bottom: 0,
                   child: IgnorePointer(
                     child: Container(
-                      width: 28,
+                      width: 32,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.centerLeft,
@@ -503,6 +503,38 @@ class _SearchScreenState extends State<SearchScreen> {
                             AppColors.background.withValues(alpha: 0),
                             AppColors.background,
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // The color fade above washes out in dark mode, where the
+                // chip and background luminance are too close to read as a
+                // gradient — this chevron badge is a theme-agnostic backup
+                // signal that the row keeps scrolling.
+                Positioned(
+                  right: 2,
+                  top: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          size: 16,
+                          color: AppColors.primaryGreen,
                         ),
                       ),
                     ),
