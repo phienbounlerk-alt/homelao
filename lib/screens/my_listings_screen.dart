@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
 import '../widgets/property_card.dart';
 import 'feature_listing_screen.dart';
+import 'post_listing_screen.dart';
 
 class MyListingsScreen extends StatefulWidget {
   const MyListingsScreen({super.key});
@@ -44,6 +45,48 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         _loading = false;
         _error = true;
       });
+    }
+  }
+
+  Future<void> _confirmDelete(Property property) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('ລຶບປະກາດ'),
+        content: Text('ລຶບ "${property.title}" ຖາວອນ? ຈະກູ້ຄືນບໍ່ໄດ້.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'ຍົກເລີກ',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'ລຶບ',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await PropertyRepository.delete(property.id);
+      if (!mounted) return;
+      _load();
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ລຶບບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
     }
   }
 
@@ -160,6 +203,72 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                   ),
                               ],
                             ),
+                            if (property.status == 'rejected')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => Navigator.of(context)
+                                            .push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    PostListingScreen(
+                                                      existing: property,
+                                                    ),
+                                              ),
+                                            )
+                                            .then((_) => _load()),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              AppColors.primaryGreen,
+                                          side: BorderSide(
+                                            color: AppColors.primaryGreen,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        icon: const Icon(
+                                          Icons.edit_rounded,
+                                          size: 14,
+                                        ),
+                                        label: const Text(
+                                          'ແກ້ໄຂ',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _confirmDelete(property),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.redAccent,
+                                          side: const BorderSide(
+                                            color: Colors.redAccent,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 14,
+                                        ),
+                                        label: const Text(
+                                          'ລຶບ',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             if (property.status == 'approved')
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),

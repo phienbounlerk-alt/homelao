@@ -4,11 +4,18 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/analytics_repository.dart';
 import '../data/geolocation.dart';
+import '../data/property_repository.dart';
 import '../data/storage_repository.dart';
+import '../models/property.dart';
 import '../theme/app_theme.dart';
 
 class PostListingScreen extends StatefulWidget {
-  const PostListingScreen({super.key});
+  const PostListingScreen({super.key, this.existing});
+
+  /// When set, the form opens pre-filled for editing this listing instead
+  /// of creating a new one — used to let an owner fix and resubmit a
+  /// rejected listing rather than leaving them with no way to try again.
+  final Property? existing;
 
   @override
   State<PostListingScreen> createState() => _PostListingScreenState();
@@ -43,6 +50,25 @@ class _PostListingScreenState extends State<PostListingScreen> {
     (Icons.chair_rounded, 'ຫ້ອງການ'),
     (Icons.map_rounded, 'ທີ່ດິນ'),
   ];
+
+  bool get _editing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing == null) return;
+    _titleController.text = existing.title;
+    _priceController.text = existing.priceLak.toString();
+    _locationController.text = existing.location;
+    _bedsController.text = existing.beds.toString();
+    _bathsController.text = existing.baths.toString();
+    _areaController.text = existing.areaSqm.toString();
+    _descController.text = existing.description;
+    _photos.addAll(existing.photos.isNotEmpty ? existing.photos : [existing.imageUrl]);
+    // The listing's category was never persisted when it was first posted,
+    // so there's nothing to restore it from — the owner just re-picks it.
+  }
 
   @override
   void dispose() {
@@ -177,7 +203,25 @@ class _PostListingScreenState extends State<PostListingScreen> {
     final landlordAvatarUrl = user?.userMetadata?['avatar_url'] as String?;
     setState(() => _submitting = true);
     try {
-      if (userId != null) {
+      if (_editing) {
+        await PropertyRepository.update(
+          id: widget.existing!.id,
+          imageUrl: _photos.first,
+          photos: _photos,
+          priceLak: int.tryParse(_priceController.text.trim()) ?? 0,
+          title: _titleController.text.trim(),
+          location: _locationController.text.trim(),
+          beds: int.tryParse(_bedsController.text.trim()) ?? 0,
+          baths: int.tryParse(_bathsController.text.trim()) ?? 0,
+          areaSqm: int.tryParse(_areaController.text.trim()) ?? 0,
+          description: _descController.text.trim(),
+          lat: _lat,
+          lng: _lng,
+        );
+        AnalyticsRepository.track('listing_resubmitted', {
+          'category': _selectedType,
+        });
+      } else if (userId != null) {
         await Supabase.instance.client.from('properties').insert({
           'owner_id': userId,
           'image_url': _photos.first,
@@ -220,7 +264,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
           children: [
             Icon(Icons.check_circle_rounded, color: AppColors.primaryGreen),
             SizedBox(width: 10),
-            Text('ລົງປະກາດສຳເລັດ'),
+            Text(_editing ? 'ສົ່ງແກ້ໄຂສຳເລັດ' : 'ລົງປະກາດສຳເລັດ'),
           ],
         ),
         content: Text(
@@ -277,7 +321,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'ລົງປະກາດ',
+                    _editing ? 'ແກ້ໄຂປະກາດ' : 'ລົງປະກາດ',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -464,9 +508,9 @@ class _PostListingScreenState extends State<PostListingScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'ລົງປະກາດ',
-                              style: TextStyle(
+                          : Text(
+                              _editing ? 'ສົ່ງແກ້ໄຂອີກຄັ້ງ' : 'ລົງປະກາດ',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,

@@ -154,6 +154,46 @@ class PropertyRepository {
         .toList();
   }
 
+  /// Edits an existing listing and re-queues it for moderation — the RLS
+  /// with-check pins the resulting status to 'pending' regardless of what's
+  /// passed here, so this can't be used to self-approve.
+  static Future<void> update({
+    required String id,
+    required String imageUrl,
+    required List<String> photos,
+    required int priceLak,
+    required String title,
+    required String location,
+    required int beds,
+    required int baths,
+    required int areaSqm,
+    required String description,
+    double? lat,
+    double? lng,
+  }) async {
+    await _client
+        .from('properties')
+        .update({
+          'image_url': imageUrl,
+          'photos': photos,
+          'price_lak': priceLak,
+          'title': title,
+          'location': location,
+          'beds': beds,
+          'baths': baths,
+          'area_sqm': areaSqm,
+          'description': description,
+          'status': 'pending',
+          'lat': ?lat,
+          'lng': ?lng,
+        })
+        .eq('id', id);
+  }
+
+  static Future<void> delete(String id) async {
+    await _client.from('properties').delete().eq('id', id);
+  }
+
   /// Listings the current user has favorited.
   static Future<List<Property>> fetchSaved() async {
     final userId = _client.auth.currentUser?.id;
