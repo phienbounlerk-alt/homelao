@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/property_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -99,7 +100,8 @@ class _SearchScreenState extends State<SearchScreen> {
         _loadingInitial = false;
         _loadingMore = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       if (_results.isEmpty) {
         setState(() {

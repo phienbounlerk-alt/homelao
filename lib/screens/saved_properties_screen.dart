@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/favorites_store.dart';
 import '../data/property_repository.dart';
 import '../models/property.dart';
@@ -43,7 +44,8 @@ class _SavedPropertiesScreenState extends State<SavedPropertiesScreen> {
         _properties = properties;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;

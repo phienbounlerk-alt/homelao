@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -50,7 +51,8 @@ class _BookingSheetState extends State<_BookingSheet> {
         'property_id': widget.property.id,
         'scheduled_at': scheduledAt.toIso8601String(),
       });
-    } catch (_) {
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
