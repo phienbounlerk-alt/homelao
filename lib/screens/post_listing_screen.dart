@@ -164,7 +164,17 @@ class _PostListingScreenState extends State<PostListingScreen> {
     }
     if (!formOk) return;
 
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final user = Supabase.instance.client.auth.currentUser;
+    final userId = user?.id;
+    // Anonymous guests have no name to show, so their listings fall back
+    // to Property's generic "unnamed owner" default rather than posting
+    // under a guessed identity.
+    final landlordName = user?.isAnonymous == false
+        ? ((user?.userMetadata?['name'] as String?)?.isNotEmpty == true
+              ? user!.userMetadata!['name'] as String
+              : user?.email)
+        : null;
+    final landlordAvatarUrl = user?.userMetadata?['avatar_url'] as String?;
     setState(() => _submitting = true);
     try {
       if (userId != null) {
@@ -181,6 +191,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'views': 0,
           'description': _descController.text.trim(),
           'photos': _photos,
+          'landlord_name': ?landlordName,
+          'landlord_avatar_url': ?landlordAvatarUrl,
           if (_lat != null) 'lat': _lat,
           if (_lng != null) 'lng': _lng,
         });

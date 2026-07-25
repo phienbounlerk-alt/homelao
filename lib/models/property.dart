@@ -13,7 +13,7 @@ class Property {
     this.verified = true,
     this.landlordAvatarUrl =
         'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
-    this.landlordName = 'ສົມໄຊ ວົງພະຈັນ',
+    this.landlordName = 'ເຈົ້າຂອງຊັບສິນ',
     this.description =
         'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '
         'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
@@ -45,7 +45,7 @@ class Property {
           'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
       landlordName: (map['landlord_name'] as String?)?.isNotEmpty == true
           ? map['landlord_name'] as String
-          : 'ສົມໄຊ ວົງພະຈັນ',
+          : 'ເຈົ້າຂອງຊັບສິນ',
       description: (map['description'] as String?)?.isNotEmpty == true
           ? map['description'] as String
           : 'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '

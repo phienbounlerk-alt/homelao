@@ -82,7 +82,7 @@ void main() {
         'description': '',
         'verified': false,
       });
-      expect(p.landlordName, 'ສົມໄຊ ວົງພະຈັນ');
+      expect(p.landlordName, 'ເຈົ້າຂອງຊັບສິນ');
       expect(p.description, isNotEmpty);
       expect(p.verified, isFalse);
     });
