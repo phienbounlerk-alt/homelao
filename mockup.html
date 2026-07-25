@@ -283,10 +283,10 @@ function restartApp() {
 }
 
 function autoScale(){
-  const PHONE_W=388, PHONE_H=790, BTN_H=44, GAP=20, PAD=24;
+  const PHONE_W=388, PHONE_H=790, BTN_H=44, GAP=20, PAD=8;
   const vw=window.innerWidth, vh=window.innerHeight;
   const totalH = PHONE_H + GAP + BTN_H;
-  const s=Math.min((vw-PAD*2)/PHONE_W,(vh-PAD*2)/totalH,1.8);
+  const s=Math.min((vw-PAD*2)/PHONE_W,(vh-PAD*2)/totalH,3.5);
   document.getElementById('scaler').style.transform='scale('+s+')';
 }
 autoScale();
