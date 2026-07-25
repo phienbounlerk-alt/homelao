@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_repository.dart';
 import '../models/moving_request.dart';
 import '../theme/app_theme.dart';
@@ -370,6 +371,19 @@ class _RequestCard extends StatefulWidget {
 class _RequestCardState extends State<_RequestCard> {
   bool _loadingDriver = false;
 
+  Future<void> _callDriver(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    try {
+      await launchUrl(uri);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ໂທອອກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   Future<void> _showDriverContact() async {
     final driverId = widget.request.driverId;
     if (driverId == null) return;
@@ -392,7 +406,22 @@ class _RequestCardState extends State<_RequestCard> {
             children: [
               Text('ຊື່: ${driver.driverName}'),
               const SizedBox(height: 6),
-              Text('ເບີໂທ: ${driver.phone}'),
+              InkWell(
+                onTap: () => _callDriver(driver.phone),
+                borderRadius: BorderRadius.circular(6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('ເບີໂທ: ${driver.phone}'),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.call_rounded,
+                      size: 15,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 6),
               Text('ລົດ: ${driver.vehicleType} (${driver.vehiclePlate})'),
             ],

@@ -40,6 +40,30 @@ class DriverRepository {
     });
   }
 
+  /// Lets a driver whose registration was rejected edit and resubmit it —
+  /// updates the same row and flips status back to 'pending' rather than
+  /// leaving them with no way to try again.
+  static Future<void> resubmit({
+    required String driverId,
+    required String driverName,
+    required String phone,
+    required String vehicleType,
+    required String vehiclePlate,
+    String? vehiclePhotoUrl,
+  }) async {
+    await _client
+        .from('drivers')
+        .update({
+          'driver_name': driverName,
+          'phone': phone,
+          'vehicle_type': vehicleType,
+          'vehicle_plate': vehiclePlate,
+          'vehicle_photo_url': vehiclePhotoUrl,
+          'status': 'pending',
+        })
+        .eq('id', driverId);
+  }
+
   static Future<Driver?> fetchById(String id) async {
     final row = await _client
         .from('drivers')

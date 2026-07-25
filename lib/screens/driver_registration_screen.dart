@@ -6,6 +6,8 @@ import '../data/storage_repository.dart';
 import '../models/driver.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
+import 'driver_jobs_screen.dart';
+import 'help_center_screen.dart';
 
 const _vehicleTypes = ['ລົດກະບະ', 'ລົດບັນທຸກກາງ', 'ລົດບັນທຸກໃຫຍ່'];
 
@@ -30,6 +32,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
 
   bool _loading = true;
   bool _error = false;
+  bool _editing = false;
   Driver? _existing;
 
   @override
@@ -102,6 +105,18 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     }
   }
 
+  void _startResubmit() {
+    final existing = _existing!;
+    _nameController.text = existing.driverName;
+    _phoneController.text = existing.phone;
+    _plateController.text = existing.vehiclePlate;
+    setState(() {
+      _vehicleType = existing.vehicleType;
+      _photoUrl = existing.vehiclePhotoUrl;
+      _editing = true;
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_vehicleType == null) {
@@ -112,14 +127,26 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     }
     setState(() => _submitting = true);
     try {
-      await DriverRepository.register(
-        driverName: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        vehicleType: _vehicleType!,
-        vehiclePlate: _plateController.text.trim(),
-        vehiclePhotoUrl: _photoUrl,
-      );
+      if (_editing && _existing != null) {
+        await DriverRepository.resubmit(
+          driverId: _existing!.id,
+          driverName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          vehicleType: _vehicleType!,
+          vehiclePlate: _plateController.text.trim(),
+          vehiclePhotoUrl: _photoUrl,
+        );
+      } else {
+        await DriverRepository.register(
+          driverName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          vehicleType: _vehicleType!,
+          vehiclePlate: _plateController.text.trim(),
+          vehiclePhotoUrl: _photoUrl,
+        );
+      }
       if (!mounted) return;
+      setState(() => _editing = false);
       await _load();
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);
@@ -189,7 +216,18 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
       );
     }
     if (_error) return ErrorState(onRetry: _load);
-    if (_existing != null) return _StatusCard(driver: _existing!);
+    if (_existing != null && !_editing) {
+      return _StatusCard(
+        driver: _existing!,
+        onContactSupport: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen())),
+        onGoToJobs: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const DriverJobsScreen())),
+        onResubmit: _startResubmit,
+      );
+    }
     return _buildForm();
   }
 
@@ -201,9 +239,41 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_editing)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => setState(() => _editing = false),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.arrow_back_rounded,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'ຍົກເລີກການແກ້ໄຂ',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             Text(
-              'ລົງທະບຽນລົດ ແລະ ຂໍ້ມູນຄົນຂັບ ເພື່ອຮັບວຽກຂົນສົ່ງເຄື່ອງຜ່ານແອັບ '
-              'ຂໍ້ມູນຈະຖືກກວດສອບໂດຍທີມງານກ່ອນເລີ່ມຮັບວຽກໄດ້.',
+              _editing
+                  ? 'ແກ້ໄຂຂໍ້ມູນ ແລະ ສົ່ງຄຳຮ້ອງສະໝັກອີກຄັ້ງ — ທີມງານຈະກວດສອບໃໝ່.'
+                  : 'ລົງທະບຽນລົດ ແລະ ຂໍ້ມູນຄົນຂັບ ເພື່ອຮັບວຽກຂົນສົ່ງເຄື່ອງຜ່ານແອັບ '
+                        'ຂໍ້ມູນຈະຖືກກວດສອບໂດຍທີມງານກ່ອນເລີ່ມຮັບວຽກໄດ້.',
               style: TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
@@ -283,9 +353,9 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'ສົ່ງຄຳຮ້ອງສະໝັກ',
-                              style: TextStyle(
+                          : Text(
+                              _editing ? 'ສົ່ງຄຳຮ້ອງອີກຄັ້ງ' : 'ສົ່ງຄຳຮ້ອງສະໝັກ',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -304,9 +374,17 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.driver});
+  const _StatusCard({
+    required this.driver,
+    required this.onContactSupport,
+    required this.onGoToJobs,
+    required this.onResubmit,
+  });
 
   final Driver driver;
+  final VoidCallback onContactSupport;
+  final VoidCallback onGoToJobs;
+  final VoidCallback onResubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -315,13 +393,14 @@ class _StatusCard extends StatelessWidget {
         Icons.check_circle_rounded,
         AppColors.primaryGreen,
         'ອະນຸມັດແລ້ວ',
-        'ທ່ານສາມາດຮັບວຽກຂົນສົ່ງໄດ້ແລ້ວ — ໄປທີ່ "ວຽກຂົນສົ່ງ" ໃນໂປຼໄຟລ໌.',
+        'ທ່ານສາມາດຮັບວຽກຂົນສົ່ງໄດ້ແລ້ວ.',
       ),
       'rejected' => (
         Icons.cancel_rounded,
         Colors.redAccent,
         'ຖືກປະຕິເສດ',
-        'ການສະໝັກຂອງທ່ານຖືກປະຕິເສດ — ກະລຸນາຕິດຕໍ່ທີມງານສຳລັບລາຍລະອຽດ.',
+        'ການສະໝັກຂອງທ່ານຖືກປະຕິເສດ — ແກ້ໄຂຂໍ້ມູນແລ້ວສົ່ງໃໝ່ໄດ້ເລີຍ, '
+            'ຫຼືຕິດຕໍ່ທີມງານຖ້າຕ້ອງການລາຍລະອຽດ.',
       ),
       _ => (
         Icons.hourglass_top_rounded,
@@ -330,10 +409,9 @@ class _StatusCard extends StatelessWidget {
         'ທີມງານກຳລັງກວດສອບຂໍ້ມູນຂອງທ່ານ, ໃຊ້ເວລາບໍ່ດົນ.',
       ),
     };
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 56, color: color),
           const SizedBox(height: 16),
@@ -372,6 +450,79 @@ class _StatusCard extends StatelessWidget {
               ],
             ),
           ),
+          if (driver.status == 'approved') ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: onGoToJobs,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Center(
+                      child: Text(
+                        'ໄປທີ່ວຽກຂົນສົ່ງ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (driver.status == 'rejected') ...[
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: Material(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: onResubmit,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Center(
+                      child: Text(
+                        'ລົງທະບຽນໃໝ່',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onContactSupport,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: BorderSide(color: AppColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'ຕິດຕໍ່ທີມງານ',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
