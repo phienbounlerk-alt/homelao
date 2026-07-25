@@ -18,6 +18,7 @@ class Property {
         'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '
         'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
         'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
+    this.status = 'approved',
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -45,6 +46,7 @@ class Property {
           : 'ຊັບສິນນີ້ຢູ່ໃນທຳເລດີ ໃກ້ສິ່ງອຳນວຍຄວາມສະດວກ ເໝາະສຳລັບຢູ່ອາໄສ. '
                 'ຫ້ອງສະອາດ ພ້ອມເຟີນິເຈີພື້ນຖານ ແລະ ຄວາມປອດໄພຕະຫຼອດ 24 ຊົ່ວໂມງ. '
                 'ຕິດຕໍ່ເຈົ້າຂອງເພື່ອນັດເບິ່ງຫ້ອງໄດ້ທັນທີ.',
+      status: map['status'] as String? ?? 'approved',
     );
   }
 
@@ -62,6 +64,11 @@ class Property {
   final String landlordAvatarUrl;
   final String landlordName;
   final String description;
+
+  /// Moderation state: 'pending' | 'approved' | 'rejected'. Only the owner
+  /// and admins ever see a non-approved row — RLS hides it from everyone
+  /// else at the query level.
+  final String status;
 
   String get formattedPrice {
     final s = priceLak.toString();

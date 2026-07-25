@@ -148,7 +148,9 @@ class _PostListingScreenState extends State<PostListingScreen> {
             Text('ລົງປະກາດສຳເລັດ'),
           ],
         ),
-        content: Text('"${_titleController.text}" ພ້ອມໃຫ້ຜູ້ເຊົ່າເຫັນແລ້ວ.'),
+        content: Text(
+          '"${_titleController.text}" ຖືກສົ່ງໄປແລ້ວ, ລໍຖ້າການອະນຸມັດກ່ອນຈະສະແດງໃຫ້ຜູ້ເຊົ່າເຫັນ.',
+        ),
         actions: [
           TextButton(
             onPressed: () {

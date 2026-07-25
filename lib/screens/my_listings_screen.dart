@@ -130,13 +130,56 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       itemCount: _properties.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 14),
-                      itemBuilder: (context, i) => PropertyCard(
-                        property: _properties[i],
-                        width: MediaQuery.of(context).size.width - 40,
-                      ),
+                      itemBuilder: (context, i) {
+                        final property = _properties[i];
+                        final cardWidth =
+                            MediaQuery.of(context).size.width - 40;
+                        final photoHeight = cardWidth * 9 / 16;
+                        return Stack(
+                          children: [
+                            PropertyCard(property: property, width: cardWidth),
+                            if (property.status != 'approved')
+                              // Bottom-left of the photo: the verified badge
+                              // already owns top-left and the favorite icon
+                              // owns top-right.
+                              Positioned(
+                                left: 10,
+                                top: photoHeight - 32,
+                                child: _StatusBadge(status: property.status),
+                              ),
+                          ],
+                        );
+                      },
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final rejected = status == 'rejected';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: rejected ? const Color(0xFFDC2626) : const Color(0xFFD97706),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        rejected ? 'ຖືກປະຕິເສດ' : 'ລໍຖ້າອະນຸມັດ',
+        style: const TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          letterSpacing: 0.3,
         ),
       ),
     );

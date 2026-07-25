@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/admin_repository.dart';
 import '../data/favorites_store.dart';
 import '../theme/app_theme.dart';
+import 'admin_screen.dart';
 import 'booking_history_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
@@ -26,8 +28,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int? _myCount;
   int? _savedCount;
   int? _bookingCount;
+  bool _isAdmin = false;
 
-  static const _menuItems = [
+  static const _baseMenuItems = [
     (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
     (Icons.favorite_rounded, 'ຊັບສິນທີ່ບັນທຶກ'),
     (Icons.chat_bubble_rounded, 'ຂໍ້ຄວາມ'),
@@ -37,11 +40,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     (Icons.help_rounded, 'ສູນຊ່ວຍເຫຼືອ'),
   ];
 
+  List<(IconData, String)> get _menuItems => [
+    for (final item in _baseMenuItems) ...[
+      if (_isAdmin && item.$2 == 'ຕັ້ງຄ່າ')
+        (Icons.admin_panel_settings_rounded, 'ຈັດການລະບົບ'),
+      item,
+    ],
+  ];
+
   @override
   void initState() {
     super.initState();
     FavoritesStore.instance.addListener(_onFavoritesChanged);
     _loadStats();
+    _checkAdmin();
+  }
+
+  Future<void> _checkAdmin() async {
+    final isAdmin = await AdminRepository.isCurrentUserAdmin();
+    if (!mounted) return;
+    setState(() => _isAdmin = isAdmin);
   }
 
   @override
@@ -102,6 +120,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()));
+      return;
+    }
+    if (label == 'ຈັດການລະບົບ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AdminScreen()));
       return;
     }
     if (label == 'ຕັ້ງຄ່າ') {
