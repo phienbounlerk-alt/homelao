@@ -12,7 +12,12 @@ import '../widgets/filter_sheet.dart';
 import '../widgets/property_card.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialNearMe = false});
+
+  /// Set when the user reached this screen via a shortcut that already
+  /// implies "near me" (e.g. Home's map card), so it activates without
+  /// requiring a second tap.
+  final bool initialNearMe;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -60,6 +65,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (mounted) setState(() => _locations = locs);
     });
     _loadPage(reset: true);
+    if (widget.initialNearMe) _toggleNearMe();
   }
 
   @override

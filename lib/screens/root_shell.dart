@@ -23,6 +23,12 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _navIndex = 0;
 
+  // Bumped whenever Home's map card is tapped so SearchScreen gets a fresh
+  // Key and re-consumes initialNearMe — a normal bottom-nav tap over to
+  // Search must NOT re-trigger it, only this explicit shortcut should.
+  int _searchGeneration = 0;
+  bool _searchAutoNearMe = false;
+
   static const _tabNames = ['home', 'search', null, 'messages', 'profile'];
 
   @override
@@ -49,6 +55,15 @@ class _RootShellState extends State<RootShell> {
     setState(() => _navIndex = index);
   }
 
+  void _openNearMeSearch() {
+    AnalyticsRepository.track('screen_view', {'screen': 'search'});
+    setState(() {
+      _searchAutoNearMe = true;
+      _searchGeneration++;
+      _navIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,8 +71,11 @@ class _RootShellState extends State<RootShell> {
       body: IndexedStack(
         index: _bodyIndex,
         children: [
-          HomeScreen(onNavigate: _onNavTap),
-          const SearchScreen(),
+          HomeScreen(onNavigate: _onNavTap, onOpenMap: _openNearMeSearch),
+          SearchScreen(
+            key: ValueKey(_searchGeneration),
+            initialNearMe: _searchAutoNearMe,
+          ),
           const MessagesScreen(),
           ProfileScreen(onNavigate: _onNavTap),
         ],

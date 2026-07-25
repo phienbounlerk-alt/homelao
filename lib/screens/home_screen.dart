@@ -18,11 +18,18 @@ import 'notifications_screen.dart';
 import 'property_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.onNavigate});
+  const HomeScreen({
+    super.key,
+    required this.onNavigate,
+    required this.onOpenMap,
+  });
 
   /// Switches the parent shell's active tab (or pushes a route for the
   /// "add listing" action), using the same index scheme as [HomeBottomNav].
   final ValueChanged<int> onNavigate;
+
+  /// Jumps to Search with "near me" pre-activated, for the map card.
+  final VoidCallback onOpenMap;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -196,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                  child: _DiscoverBanner(),
+                  child: _DiscoverBanner(onExplore: () => widget.onNavigate(1)),
                 ),
               ),
               SliverToBoxAdapter(
@@ -278,7 +285,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                    child: _SectionHeader(title: '★ ຊັບສິນເດັ່ນ'),
+                    child: _SectionHeader(
+                      title: '★ ຊັບສິນເດັ່ນ',
+                      onViewAll: () => widget.onNavigate(1),
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -302,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _SectionHeader(
                     title: 'ແນະນຳສຳລັບທ່ານ',
                     subtitle: 'ຊັບສິນທີ່ຄັດເລືອກຕາມຄວາມມັກຂອງທ່ານ.',
+                    onViewAll: () => widget.onNavigate(1),
                   ),
                 ),
               ),
@@ -325,7 +336,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),
-                    child: _SectionHeader(title: 'ລາຍການໃໝ່ລ່າສຸດ'),
+                    child: _SectionHeader(
+                      title: 'ລາຍການໃໝ່ລ່າສຸດ',
+                      onViewAll: () => widget.onNavigate(1),
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -367,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 30, 20, 0),
-                  child: _MapCard(),
+                  child: _MapCard(onOpenMap: widget.onOpenMap),
                 ),
               ),
               SliverToBoxAdapter(
@@ -578,100 +592,75 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Material(
-            color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(24),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 52,
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.search_rounded,
-                      color: AppColors.textSecondary,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'ຄົ້ນຫາອາພາດເມັນ, ເຮືອນ, ຄອນໂດ...',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {},
-                        borderRadius: BorderRadius.circular(20),
-                        child: Tooltip(
-                          message: 'ຕົວກອງ',
-                          child: Padding(
-                            padding: EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.tune_rounded,
-                              color: AppColors.textSecondary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.search_rounded,
+                color: AppColors.textSecondary,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'ຄົ້ນຫາອາພາດເມັນ, ເຮືອນ, ຄອນໂດ...',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Material(
-          color: AppColors.primaryGreen,
-          shape: const CircleBorder(),
-          elevation: 2,
-          shadowColor: AppColors.primaryGreen.withValues(alpha: 0.4),
-          child: InkWell(
-            onTap: () {},
-            customBorder: const CircleBorder(),
-            child: const Tooltip(
-              message: 'ຄົ້ນຫາດ້ວຍສຽງ',
-              child: SizedBox(
-                width: 52,
-                height: 52,
-                child: Icon(
-                  Icons.mic_none_rounded,
-                  color: Colors.white,
-                  size: 24,
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Tooltip(
+                    message: 'ຕົວກອງ',
+                    child: Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.tune_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
 class _DiscoverBanner extends StatefulWidget {
+  const _DiscoverBanner({required this.onExplore});
+
+  final VoidCallback onExplore;
+
   @override
   State<_DiscoverBanner> createState() => _DiscoverBannerState();
 }
@@ -722,8 +711,10 @@ class _DiscoverBannerState extends State<_DiscoverBanner> {
               controller: _controller,
               itemCount: _slideImages.length,
               onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (context, i) =>
-                  _BannerSlide(imageUrl: _slideImages[i]),
+              itemBuilder: (context, i) => _BannerSlide(
+                imageUrl: _slideImages[i],
+                onExplore: widget.onExplore,
+              ),
             ),
           ),
           Positioned(
@@ -753,9 +744,10 @@ class _DiscoverBannerState extends State<_DiscoverBanner> {
 }
 
 class _BannerSlide extends StatelessWidget {
-  const _BannerSlide({required this.imageUrl});
+  const _BannerSlide({required this.imageUrl, required this.onExplore});
 
   final String imageUrl;
+  final VoidCallback onExplore;
 
   @override
   Widget build(BuildContext context) {
@@ -816,7 +808,7 @@ class _BannerSlide extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () {},
+                onTap: onExplore,
                 borderRadius: BorderRadius.circular(14),
                 splashColor: AppColors.primaryGreen.withValues(alpha: 0.15),
                 child: Padding(
@@ -840,10 +832,11 @@ class _BannerSlide extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.subtitle});
+  const _SectionHeader({required this.title, this.subtitle, this.onViewAll});
 
   final String title;
   final String? subtitle;
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context) {
@@ -876,40 +869,45 @@ class _SectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {},
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'ເບິ່ງທັງໝົດ',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryGreen,
+        if (onViewAll != null)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onViewAll,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'ເບິ່ງທັງໝົດ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreen,
+                      ),
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.primaryGreen,
-                    size: 18,
-                  ),
-                ],
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 18,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
 }
 
 class _MapCard extends StatelessWidget {
+  const _MapCard({required this.onOpenMap});
+
+  final VoidCallback onOpenMap;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -963,7 +961,7 @@ class _MapCard extends StatelessWidget {
                   color: AppColors.primaryGreen,
                   borderRadius: BorderRadius.circular(10),
                   child: InkWell(
-                    onTap: () {},
+                    onTap: onOpenMap,
                     borderRadius: BorderRadius.circular(10),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 9),
