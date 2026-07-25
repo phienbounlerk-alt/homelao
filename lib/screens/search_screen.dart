@@ -36,6 +36,11 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _error = false;
   bool _nearMe = false;
   bool _locating = false;
+  double _radiusKm = 15;
+  double? _originLat;
+  double? _originLng;
+
+  static const _radiusOptions = [5.0, 15.0, 30.0, 50.0, 100.0];
 
   static const _categories = [
     (Icons.apartment_rounded, 'ອາພາດເມັນ'),
@@ -81,7 +86,13 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _locating = true);
     try {
       final (lat, lng) = await currentLatLng();
-      final results = await PropertyRepository.fetchNear(lat: lat, lng: lng);
+      _originLat = lat;
+      _originLng = lng;
+      final results = await PropertyRepository.fetchNear(
+        lat: lat,
+        lng: lng,
+        radiusKm: _radiusKm,
+      );
       if (!mounted) return;
       setState(() {
         _nearMe = true;
@@ -111,6 +122,38 @@ class _SearchScreenState extends State<SearchScreen> {
       Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ຄົ້ນຫາໃກ້ຂ້ອຍບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  /// Re-queries with a new radius using the already-granted location — no
+  /// fresh permission prompt needed since [_originLat]/[_originLng] are
+  /// only set once `_toggleNearMe` has successfully located the user.
+  Future<void> _changeRadius(double km) async {
+    if (km == _radiusKm || _originLat == null || _originLng == null) return;
+    setState(() {
+      _radiusKm = km;
+      _loadingInitial = true;
+    });
+    try {
+      final results = await PropertyRepository.fetchNear(
+        lat: _originLat!,
+        lng: _originLng!,
+        radiusKm: km,
+      );
+      if (!mounted) return;
+      setState(() {
+        _results
+          ..clear()
+          ..addAll(results);
+        _loadingInitial = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _loadingInitial = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ຄົ້ນຫາໃກ້ຂ້ອຍບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
       );
@@ -436,6 +479,48 @@ class _SearchScreenState extends State<SearchScreen> {
                 },
               ),
             ),
+            if (_nearMe) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 30,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _radiusOptions.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 6),
+                  itemBuilder: (context, i) {
+                    final km = _radiusOptions[i];
+                    final selected = km == _radiusKm;
+                    return Material(
+                      color: selected
+                          ? AppColors.primaryGreen
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _changeRadius(km),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          child: Text(
+                            km >= 100 ? '100+ km' : '${km.toInt()} km',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -445,7 +530,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     _loadingInitial
                         ? 'ກຳລັງຄົ້ນຫາ...'
                         : _nearMe
-                        ? 'ພົບ ${_results.length} ຊັບສິນໃກ້ທ່ານ (< 15 km)'
+                        ? 'ພົບ ${_results.length} ຊັບສິນໃກ້ທ່ານ (< ${_radiusKm.toInt()} km)'
                         : 'ພົບ ${_results.length}${_hasMore ? '+' : ''} ຊັບສິນ',
                     style: TextStyle(
                       fontSize: 13,
@@ -505,7 +590,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           const SizedBox(height: 4),
                           Text(
                             _nearMe
-                                ? 'ຍັງບໍ່ມີປະກາດທີ່ບອກຕຳແໜ່ງໃນຮັດສະໝີ 15 km'
+                                ? 'ຍັງບໍ່ມີປະກາດທີ່ບອກຕຳແໜ່ງໃນຮັດສະໝີ ${_radiusKm.toInt()} km — ລອງຂະຫຍາຍໄລຍະ'
                                 : 'ລອງຄົ້ນຫາຄຳອື່ນ',
                             style: TextStyle(
                               fontSize: 12.5,
