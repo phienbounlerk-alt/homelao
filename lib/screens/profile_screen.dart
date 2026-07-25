@@ -8,6 +8,7 @@ import 'admin_screen.dart';
 import 'booking_history_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
+import 'legal_screen.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
 import 'payment_methods_screen.dart';
@@ -39,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     (Icons.payment_rounded, 'ວິທີການຊຳລະເງິນ'),
     (Icons.settings_rounded, 'ຕັ້ງຄ່າ'),
     (Icons.help_rounded, 'ສູນຊ່ວຍເຫຼືອ'),
+    (Icons.gavel_rounded, 'ເງື່ອນໄຂ ແລະ ຄວາມເປັນສ່ວນຕົວ'),
   ];
 
   List<(IconData, String)> get _menuItems => [
@@ -140,6 +142,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+      return;
+    }
+    if (label == 'ເງື່ອນໄຂ ແລະ ຄວາມເປັນສ່ວນຕົວ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
       return;
     }
     if (label == 'ແກ້ໄຂໂປຼໄຟລ໌') {

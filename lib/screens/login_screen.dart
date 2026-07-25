@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
+import 'legal_screen.dart';
 import 'root_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -207,6 +209,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+                if (_isSignup) ...[
+                  const SizedBox(height: 14),
+                  Center(
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                        ),
+                        children: [
+                          const TextSpan(text: 'ການສະໝັກສະມາຊິກໝາຍຄວາມວ່າທ່ານຍອມຮັບ '),
+                          TextSpan(
+                            text: 'ເງື່ອນໄຂການນຳໃຊ້ ແລະ ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primaryGreen,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const LegalScreen(),
+                                ),
+                              ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Center(
                   child: InkWell(
