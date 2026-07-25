@@ -180,6 +180,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'rating': 0,
           'views': 0,
           'description': _descController.text.trim(),
+          'photos': _photos,
           if (_lat != null) 'lat': _lat,
           if (_lng != null) 'lng': _lng,
         });

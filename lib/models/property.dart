@@ -23,6 +23,7 @@ class Property {
     this.featuredUntil,
     this.ownerId,
     this.distanceKm,
+    this.photos = const [],
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -56,6 +57,7 @@ class Property {
           ? DateTime.parse(map['featured_until'] as String)
           : null,
       ownerId: map['owner_id'] as String?,
+      photos: (map['photos'] as List?)?.cast<String>() ?? const [],
     );
   }
 
@@ -83,6 +85,13 @@ class Property {
   final DateTime? featuredUntil;
   final String? ownerId;
 
+  /// All photos for this listing, in upload order. Falls back to just
+  /// [imageUrl] for rows that predate this field.
+  final List<String> photos;
+
+  /// Photos to actually render — never empty, even for old rows.
+  List<String> get displayPhotos => photos.isNotEmpty ? photos : [imageUrl];
+
   /// Distance in km from a search origin — only set on results from
   /// [PropertyRepository.fetchNear], never persisted or read from Supabase.
   final double? distanceKm;
@@ -107,6 +116,7 @@ class Property {
     featuredUntil: featuredUntil,
     ownerId: ownerId,
     distanceKm: km,
+    photos: photos,
   );
 
   /// Whether the paid featured-listing boost is still within its window —

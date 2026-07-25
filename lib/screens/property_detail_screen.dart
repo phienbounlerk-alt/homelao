@@ -17,6 +17,9 @@ class PropertyDetailScreen extends StatefulWidget {
 }
 
 class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
+  final _photoController = PageController();
+  int _photoIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +32,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   @override
   void dispose() {
     FavoritesStore.instance.removeListener(_onFavoritesChanged);
+    _photoController.dispose();
     super.dispose();
   }
 
@@ -54,11 +58,57 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                     children: [
                       AspectRatio(
                         aspectRatio: 4 / 3,
-                        child: Image.network(
-                          property.imageUrl,
-                          fit: BoxFit.cover,
+                        child: PageView.builder(
+                          controller: _photoController,
+                          itemCount: property.displayPhotos.length,
+                          onPageChanged: (i) =>
+                              setState(() => _photoIndex = i),
+                          itemBuilder: (context, i) => Image.network(
+                            property.displayPhotos[i],
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
+                      if (property.displayPhotos.length > 1)
+                        Positioned(
+                          bottom: property.verified ? 52 : 16,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: List.generate(
+                                  property.displayPhotos.length,
+                                  (i) => AnimatedContainer(
+                                    duration: const Duration(
+                                      milliseconds: 250,
+                                    ),
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
+                                    width: i == _photoIndex ? 16 : 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: i == _photoIndex ? 1 : 0.6,
+                                      ),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       SafeArea(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
