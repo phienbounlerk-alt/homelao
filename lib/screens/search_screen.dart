@@ -382,109 +382,133 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
-            SizedBox(
-              height: 38,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                scrollDirection: Axis.horizontal,
-                itemCount: _categories.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, i) {
-                  if (i == 0) {
-                    return Material(
-                      color: _nearMe
-                          ? AppColors.primaryGreen
-                          : AppColors.secondaryGreen,
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: _locating ? null : _toggleNearMe,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _locating
-                                  ? SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: _nearMe
-                                            ? Colors.white
-                                            : AppColors.primaryGreen,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.my_location_rounded,
-                                      size: 15,
+            Stack(
+              children: [
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length + 1,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      if (i == 0) {
+                        return Material(
+                          color: _nearMe
+                              ? AppColors.primaryGreen
+                              : AppColors.secondaryGreen,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: _locating ? null : _toggleNearMe,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _locating
+                                      ? SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: _nearMe
+                                                ? Colors.white
+                                                : AppColors.primaryGreen,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.my_location_rounded,
+                                          size: 15,
+                                          color: _nearMe
+                                              ? Colors.white
+                                              : AppColors.primaryGreen,
+                                        ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'ໃກ້ຂ້ອຍ',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
                                       color: _nearMe
                                           ? Colors.white
                                           : AppColors.primaryGreen,
                                     ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'ໃກ້ຂ້ອຍ',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: _nearMe
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      final c = _categories[i - 1];
+                      final selected = _activeCategory == c.$2;
+                      return Material(
+                        color: selected
+                            ? AppColors.primaryGreen
+                            : AppColors.secondaryGreen,
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () => _onCategoryTap(c.$2),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  c.$1,
+                                  size: 15,
+                                  color: selected
                                       ? Colors.white
                                       : AppColors.primaryGreen,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  c.$2,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.primaryGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }
-                  final c = _categories[i - 1];
-                  final selected = _activeCategory == c.$2;
-                  return Material(
-                    color: selected
-                        ? AppColors.primaryGreen
-                        : AppColors.secondaryGreen,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => _onCategoryTap(c.$2),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              c.$1,
-                              size: 15,
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.primaryGreen,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              c.$2,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.primaryGreen,
-                              ),
-                            ),
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 28,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.background.withValues(alpha: 0),
+                            AppColors.background,
                           ],
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
             if (_nearMe) ...[
               const SizedBox(height: 10),

@@ -12,6 +12,7 @@ import '../widgets/feature_chip.dart';
 import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
+import 'help_center_screen.dart';
 import 'notifications_screen.dart';
 import 'property_detail_screen.dart';
 
@@ -38,15 +39,26 @@ class _HomeScreenState extends State<HomeScreen> {
     (Icons.grid_view_rounded, 'ອື່ນໆ'),
   ];
 
-  static const _features = [
-    (Icons.verified_rounded, 'ລາຍການ\nຢືນຢັນແລ້ວ'),
-    (Icons.near_me_rounded, 'ເຊົ່າ\nໃກ້ຄຽງ'),
-    (Icons.sell_rounded, 'ລາຄາ\nຖືກສຸດ'),
-    (Icons.chat_bubble_rounded, 'ແຊັດ\nທັນທີ'),
-    (Icons.calendar_month_rounded, 'ນັດ\nເບິ່ງບ້ານ'),
-    (Icons.calculate_rounded, 'ຄິດໄລ່\nເງິນກູ້'),
-    (Icons.local_shipping_rounded, 'ບໍລິການ\nຍ້າຍເຂົ້າ'),
-    (Icons.support_agent_rounded, 'ຊ່ວຍເຫຼືອ\n24 ຊມ.'),
+  // Each shortcut jumps to a screen that actually delivers on its label —
+  // no tiles for features the app doesn't have (a loan calculator and a
+  // move-in service were dropped for exactly that reason).
+  List<(IconData, String, VoidCallback)> _features(BuildContext context) => [
+    (Icons.verified_rounded, 'ລາຍການ\nຢືນຢັນແລ້ວ', () => widget.onNavigate(1)),
+    (Icons.near_me_rounded, 'ເຊົ່າ\nໃກ້ຄຽງ', () => widget.onNavigate(1)),
+    (Icons.sell_rounded, 'ລາຄາ\nຖືກສຸດ', () => widget.onNavigate(1)),
+    (Icons.chat_bubble_rounded, 'ແຊັດ\nທັນທີ', () => widget.onNavigate(3)),
+    (
+      Icons.calendar_month_rounded,
+      'ນັດ\nເບິ່ງບ້ານ',
+      () => widget.onNavigate(1),
+    ),
+    (
+      Icons.support_agent_rounded,
+      'ຊ່ວຍເຫຼືອ\n24 ຊມ.',
+      () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen())),
+    ),
   ];
 
   List<Property> _recommended = [];
@@ -220,28 +232,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    child: Builder(
+                      builder: (context) {
+                        final features = _features(context);
+                        return Column(
                           children: [
-                            for (final f in _features.sublist(0, 4))
-                              Expanded(
-                                child: FeatureChip(icon: f.$1, label: f.$2),
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                for (final f in features.sublist(0, 3))
+                                  Expanded(
+                                    child: FeatureChip(
+                                      icon: f.$1,
+                                      label: f.$2,
+                                      onTap: f.$3,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                for (final f in features.sublist(3, 6))
+                                  Expanded(
+                                    child: FeatureChip(
+                                      icon: f.$1,
+                                      label: f.$2,
+                                      onTap: f.$3,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            for (final f in _features.sublist(4, 8))
-                              Expanded(
-                                child: FeatureChip(icon: f.$1, label: f.$2),
-                              ),
-                          ],
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ),
