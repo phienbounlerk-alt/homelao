@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/analytics_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 
@@ -50,6 +51,9 @@ class _BookingSheetState extends State<_BookingSheet> {
         'user_id': userId,
         'property_id': widget.property.id,
         'scheduled_at': scheduledAt.toIso8601String(),
+      });
+      AnalyticsRepository.track('booking_requested', {
+        'property_id': widget.property.id,
       });
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);

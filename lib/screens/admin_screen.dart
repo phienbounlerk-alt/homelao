@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/admin_repository.dart';
+import '../data/analytics_repository.dart';
 import '../models/featured_request.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -15,7 +16,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabController = TabController(length: 2, vsync: this);
+  late final _tabController = TabController(length: 3, vsync: this);
 
   @override
   void dispose() {
@@ -78,6 +79,7 @@ class _AdminScreenState extends State<AdminScreen>
               tabs: const [
                 Tab(text: 'ປະກາດລໍຖ້າອະນຸມັດ'),
                 Tab(text: 'ຄຳຮ້ອງເດັ່ນ'),
+                Tab(text: 'ສະຖິຕິ'),
               ],
             ),
             Expanded(
@@ -86,6 +88,7 @@ class _AdminScreenState extends State<AdminScreen>
                 children: const [
                   _PendingPropertiesTab(),
                   _FeatureRequestsTab(),
+                  _AnalyticsTab(),
                 ],
               ),
             ),
@@ -313,6 +316,332 @@ class _FeatureRequestsTabState extends State<_FeatureRequestsTab> {
           onReject: () => _decide(request, false),
         );
       },
+    );
+  }
+}
+
+class _AnalyticsTab extends StatefulWidget {
+  const _AnalyticsTab();
+
+  @override
+  State<_AnalyticsTab> createState() => _AnalyticsTabState();
+}
+
+class _AnalyticsTabState extends State<_AnalyticsTab> {
+  List<({DateTime day, int events, int users})> _daily = [];
+  List<(Property, int)> _topProperties = [];
+  List<(String, int)> _topSearches = [];
+  bool _loading = true;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final results = await Future.wait([
+        AnalyticsRepository.dailyCounts(daysBack: 14),
+        AnalyticsRepository.topProperties(daysBack: 7),
+        AnalyticsRepository.topSearches(daysBack: 7),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _daily = results[0] as List<({DateTime day, int events, int users})>;
+        _topProperties = results[1] as List<(Property, int)>;
+        _topSearches = results[2] as List<(String, int)>;
+        _loading = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (_error) return ErrorState(onRetry: _load);
+
+    final today = DateTime.now();
+    final todayCount = _daily
+        .where(
+          (d) =>
+              d.day.year == today.year &&
+              d.day.month == today.month &&
+              d.day.day == today.day,
+        )
+        .fold(0, (sum, d) => sum + d.events);
+    final weekEvents = _daily.take(7).fold(0, (sum, d) => sum + d.events);
+    final weekUsers = _daily
+        .take(7)
+        .map((d) => d.users)
+        .fold(0, (max, u) => u > max ? u : max);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(label: 'ມື້ນີ້', value: '$todayCount'),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(label: '7 ວັນຫຼ້າສຸດ', value: '$weekEvents'),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _StatCard(label: 'ຜູ້ໃຊ້ສູງສຸດ/ວັນ', value: '$weekUsers'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'ກິດຈະກຳ 14 ວັນຫຼ້າສຸດ',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _DailyBarChart(daily: _daily),
+        const SizedBox(height: 24),
+        Text(
+          'ຊັບສິນທີ່ຖືກເບິ່ງຫຼາຍສຸດ (7 ວັນ)',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (_topProperties.isEmpty)
+          _EmptyStatRow(label: 'ຍັງບໍ່ມີຂໍ້ມູນ')
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < _topProperties.length; i++) ...[
+                  _RankRow(
+                    label: _topProperties[i].$1.title,
+                    count: _topProperties[i].$2,
+                    unit: 'ຄັ້ງ',
+                  ),
+                  if (i != _topProperties.length - 1)
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: AppColors.cardBorder,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        const SizedBox(height: 24),
+        Text(
+          'ຄຳຄົ້ນຫາຍອດນິຍົມ (7 ວັນ)',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (_topSearches.isEmpty)
+          _EmptyStatRow(label: 'ຍັງບໍ່ມີຂໍ້ມູນ')
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < _topSearches.length; i++) ...[
+                  _RankRow(
+                    label: _topSearches[i].$1,
+                    count: _topSearches[i].$2,
+                    unit: 'ຄັ້ງ',
+                  ),
+                  if (i != _topSearches.length - 1)
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: AppColors.cardBorder,
+                    ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DailyBarChart extends StatelessWidget {
+  const _DailyBarChart({required this.daily});
+
+  final List<({DateTime day, int events, int users})> daily;
+
+  @override
+  Widget build(BuildContext context) {
+    if (daily.isEmpty) return _EmptyStatRow(label: 'ຍັງບໍ່ມີຂໍ້ມູນ');
+    // daily arrives newest-first; render oldest-first, left to right.
+    final ordered = daily.reversed.toList();
+    final maxEvents = ordered
+        .map((d) => d.events)
+        .fold(1, (max, v) => v > max ? v : max);
+    return Container(
+      height: 110,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (final d in ordered)
+            Expanded(
+              child: Tooltip(
+                message: '${d.day.month}/${d.day.day}: ${d.events} events',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: FractionallySizedBox(
+                    heightFactor: (d.events / maxEvents).clamp(0.04, 1.0),
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankRow extends StatelessWidget {
+  const _RankRow({required this.label, required this.count, this.unit = ''});
+
+  final String label;
+  final int count;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$count $unit',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyStatRow extends StatelessWidget {
+  const _EmptyStatRow({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+      ),
     );
   }
 }

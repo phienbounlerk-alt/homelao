@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/analytics_repository.dart';
 import '../theme/app_theme.dart';
 import 'legal_screen.dart';
 import 'root_shell.dart';
@@ -61,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
       }
+      AnalyticsRepository.track(_isSignup ? 'signup_completed' : 'login_completed');
       _enterApp();
     } on AuthException catch (e) {
       _showError(e.message);
@@ -73,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     try {
       await Supabase.instance.client.auth.signInAnonymously();
+      AnalyticsRepository.track('guest_login_completed');
       _enterApp();
     } on AuthException catch (e) {
       _showError(e.message);

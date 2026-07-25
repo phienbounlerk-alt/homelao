@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import '../data/analytics_repository.dart';
 import '../data/geolocation.dart';
 import '../data/property_repository.dart';
 import '../models/property.dart';
@@ -185,6 +186,12 @@ class _SearchScreenState extends State<SearchScreen> {
         location: _filters.location,
       );
       if (!mounted) return;
+      if (reset && _query.trim().isNotEmpty) {
+        AnalyticsRepository.track('search_performed', {
+          'query': _query.trim(),
+          'result_count': page.length,
+        });
+      }
       setState(() {
         _results.addAll(page);
         _page++;

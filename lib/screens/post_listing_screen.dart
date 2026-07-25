@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/analytics_repository.dart';
 import '../data/geolocation.dart';
 import '../data/storage_repository.dart';
 import '../theme/app_theme.dart';
@@ -181,6 +182,9 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'description': _descController.text.trim(),
           if (_lat != null) 'lat': _lat,
           if (_lng != null) 'lng': _lng,
+        });
+        AnalyticsRepository.track('listing_posted', {
+          'category': _selectedType,
         });
       }
     } catch (e, st) {

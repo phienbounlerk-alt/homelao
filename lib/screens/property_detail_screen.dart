@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/analytics_repository.dart';
 import '../data/conversation_repository.dart';
 import '../data/favorites_store.dart';
 import '../models/property.dart';
@@ -20,6 +21,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   void initState() {
     super.initState();
     FavoritesStore.instance.addListener(_onFavoritesChanged);
+    AnalyticsRepository.track('property_viewed', {
+      'property_id': widget.property.id,
+    });
   }
 
   @override

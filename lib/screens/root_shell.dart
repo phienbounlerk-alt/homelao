@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/analytics_repository.dart';
 import '../data/favorites_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/home_bottom_nav.dart';
@@ -22,10 +23,13 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _navIndex = 0;
 
+  static const _tabNames = ['home', 'search', null, 'messages', 'profile'];
+
   @override
   void initState() {
     super.initState();
     FavoritesStore.instance.loadForCurrentUser();
+    AnalyticsRepository.track('screen_view', {'screen': _tabNames[0]});
   }
 
   // HomeBottomNav index 2 ("add") has no tab body, so it's excluded here.
@@ -37,6 +41,10 @@ class _RootShellState extends State<RootShell> {
         context,
       ).push(MaterialPageRoute(builder: (_) => const PostListingScreen()));
       return;
+    }
+    final screen = _tabNames[index];
+    if (screen != null) {
+      AnalyticsRepository.track('screen_view', {'screen': screen});
     }
     setState(() => _navIndex = index);
   }
