@@ -37,6 +37,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       maxWidth: 800,
+      maxHeight: 800,
       imageQuality: 85,
     );
     if (file == null) return;

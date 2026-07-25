@@ -50,40 +50,57 @@ class _PostListingScreenState extends State<PostListingScreen> {
     super.dispose();
   }
 
-  Future<void> _addPhoto() async {
-    if (_photos.length >= _maxPhotos) {
+  Future<void> _addPhotos() async {
+    final remaining = _maxPhotos - _photos.length;
+    if (remaining <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('ເພີ່ມຮູບໄດ້ສູງສຸດ $_maxPhotos ໃບ')),
       );
       return;
     }
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+    // maxWidth/maxHeight/imageQuality make image_picker resize and
+    // re-encode each photo client-side (via a canvas, on web) before we
+    // ever read its bytes, so every upload is already compressed.
+    final files = await ImagePicker().pickMultiImage(
       maxWidth: 1600,
-      imageQuality: 85,
+      maxHeight: 1600,
+      imageQuality: 82,
+      limit: remaining,
     );
-    if (file == null) return;
+    if (files.isEmpty) return;
+    final skipped = files.length - remaining;
+    final toUpload = files.take(remaining).toList();
+
     setState(() => _uploadingPhoto = true);
-    try {
-      final bytes = await file.readAsBytes();
-      final ext = file.name.contains('.')
-          ? file.name.split('.').last.toLowerCase()
-          : 'jpg';
-      final url = await StorageRepository.uploadImage(
-        bytes: bytes,
-        folder: 'properties',
-        extension: ext,
-      );
-      if (!mounted) return;
-      setState(() {
-        _photos.add(url);
-        _uploadingPhoto = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _uploadingPhoto = false);
+    var failures = 0;
+    for (final file in toUpload) {
+      try {
+        final bytes = await file.readAsBytes();
+        final ext = file.name.contains('.')
+            ? file.name.split('.').last.toLowerCase()
+            : 'jpg';
+        final url = await StorageRepository.uploadImage(
+          bytes: bytes,
+          folder: 'properties',
+          extension: ext,
+        );
+        if (!mounted) return;
+        setState(() => _photos.add(url));
+      } catch (_) {
+        failures++;
+      }
+    }
+    if (!mounted) return;
+    setState(() => _uploadingPhoto = false);
+    if (failures > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ອັບໂຫລດຮູບບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+        SnackBar(content: Text('ອັບໂຫລດບໍ່ສຳເລັດ $failures ໃບ — ກະລຸນາລອງໃໝ່')),
+      );
+    } else if (skipped > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ເລືອກຮູບໄດ້ສູງສຸດ $_maxPhotos ໃບ, ຂ້າມໄປ $skipped ໃບ'),
+        ),
       );
     }
   }
@@ -225,7 +242,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                       _PhotoRow(
                         photos: _photos,
                         uploading: _uploadingPhoto,
-                        onAdd: _addPhoto,
+                        onAdd: _addPhotos,
                         onRemove: _removePhoto,
                       ),
                       const SizedBox(height: 20),
