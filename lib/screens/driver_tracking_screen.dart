@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_repository.dart';
 import '../models/driver.dart';
 import '../theme/app_theme.dart';
@@ -45,6 +47,18 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     if (seconds < 60) return 'ອັບເດດ $seconds ວິນາທີກ່ອນ';
     final minutes = seconds ~/ 60;
     return 'ອັບເດດ $minutes ນາທີກ່ອນ';
+  }
+
+  Future<void> _callDriver(String phone) async {
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: phone));
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ໂທອອກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   @override
@@ -228,25 +242,50 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Text(
-                                  '${driver.driverName} — ${driver.vehiclePlate}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${driver.driverName} — ${driver.vehiclePlate}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    if (updatedAt != null)
+                                      Text(
+                                        _freshness(updatedAt),
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Material(
+                                color: AppColors.secondaryGreen,
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () => _callDriver(driver.phone),
+                                  child: Tooltip(
+                                    message: 'ໂທຫາຄົນຂັບ',
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.call_rounded,
+                                        size: 16,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                              if (updatedAt != null)
-                                Text(
-                                  _freshness(updatedAt),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
                             ],
                           ),
                         ),

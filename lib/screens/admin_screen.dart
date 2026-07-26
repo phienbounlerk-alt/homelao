@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/admin_repository.dart';
 import '../data/analytics_repository.dart';
 import '../models/driver.dart';
@@ -7,6 +8,18 @@ import '../models/featured_request.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
+
+Future<void> _callPhone(BuildContext context, String phone) async {
+  try {
+    await launchUrl(Uri(scheme: 'tel', path: phone));
+  } catch (e, st) {
+    Sentry.captureException(e, stackTrace: st);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ໂທອອກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+    );
+  }
+}
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -1063,13 +1076,31 @@ class _DriverCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      driver.phone,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.textSecondary,
+                    InkWell(
+                      onTap: () => _callPhone(context, driver.phone),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              driver.phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.call_rounded,
+                            size: 13,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ],
                       ),
                     ),
                   ],
