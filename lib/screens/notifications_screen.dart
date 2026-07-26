@@ -45,6 +45,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'listing_rejected' => Icons.cancel_rounded,
     'feature_confirmed' => Icons.star_rounded,
     'feature_rejected' => Icons.star_outline_rounded,
+    'driver_approved' => Icons.check_circle_rounded,
+    'driver_rejected' => Icons.cancel_rounded,
+    'moving_accepted' => Icons.local_shipping_rounded,
+    'moving_in_progress' => Icons.local_shipping_rounded,
+    'moving_completed' => Icons.check_circle_rounded,
     _ => Icons.notifications_rounded,
   };
 
@@ -53,7 +58,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'listing_rejected' => const Color(0xFFDC2626),
     'feature_confirmed' => const Color(0xFFD97706),
     'feature_rejected' => const Color(0xFFDC2626),
-    _ => AppColors.primaryGreen,
+    'driver_approved' => AppColors.primaryGreen,
+    'driver_rejected' => const Color(0xFFDC2626),
+    'moving_accepted' => AppColors.primaryGreen,
+    'moving_in_progress' => AppColors.primaryGreen,
+    'moving_completed' => AppColors.primaryGreen,
+    // Anything unmapped falls back to a neutral color rather than green,
+    // so a future notification type can't accidentally read as "good news"
+    // by default the way rejections did before this fix.
+    _ => AppColors.textSecondary,
   };
 
   @override
