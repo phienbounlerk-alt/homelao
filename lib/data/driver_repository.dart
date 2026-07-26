@@ -126,14 +126,10 @@ class DriverRepository {
   static Future<void> acceptRequest(MovingRequest request) async {
     final driver = await fetchMine();
     if (driver == null) throw StateError('not a registered driver');
-    await _client
-        .from('moving_requests')
-        .update({
-          'driver_id': driver.id,
-          'status': 'accepted',
-          'accepted_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', request.id);
+    await _client.rpc(
+      'accept_moving_request',
+      params: {'p_request_id': request.id},
+    );
     await NotificationRepository.notify(
       userId: request.customerId,
       title: 'ຄົນຂັບຮັບຄຳຮ້ອງແລ້ວ',
@@ -146,14 +142,10 @@ class DriverRepository {
     MovingRequest request,
     String status,
   ) async {
-    await _client
-        .from('moving_requests')
-        .update({
-          'status': status,
-          if (status == 'completed')
-            'completed_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', request.id);
+    await _client.rpc(
+      'update_moving_request_status',
+      params: {'p_request_id': request.id, 'p_status': status},
+    );
     await NotificationRepository.notify(
       userId: request.customerId,
       title: status == 'completed'
@@ -212,9 +204,9 @@ class DriverRepository {
   }
 
   static Future<void> cancelRequest(MovingRequest request) async {
-    await _client
-        .from('moving_requests')
-        .update({'status': 'cancelled'})
-        .eq('id', request.id);
+    await _client.rpc(
+      'cancel_moving_request',
+      params: {'p_request_id': request.id},
+    );
   }
 }
