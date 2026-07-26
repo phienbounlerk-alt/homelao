@@ -35,7 +35,11 @@ jobs:
           flutter-version: '3.44.0'
           channel: stable
       - run: flutter pub get
-      - run: flutter build web --release --base-href /homelao/
+      - run: flutter build web --release --base-href /homelao/ --dart-define=BUILD_SHA=${{ github.sha }}
+      # Lets the running app detect a newer deploy exists (see
+      # lib/main.dart's update-check) — otherwise an installed PWA can sit
+      # on a stale cached build indefinitely with no signal a new one exists.
+      - run: echo '{"sha":"${{ github.sha }}"}' > build/web/version.json
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
