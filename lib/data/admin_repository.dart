@@ -74,14 +74,20 @@ class AdminRepository {
         .from('featured_requests')
         .update({
           'status': approve ? 'confirmed' : 'rejected',
-          'reviewed_at': DateTime.now().toIso8601String(),
+          // .toUtc() before serializing — a local DateTime's
+          // toIso8601String() has no offset, which Postgres reads as UTC,
+          // silently shifting the stored instant by the local UTC offset.
+          'reviewed_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', request.id);
     if (approve) {
       final until = DateTime.now().add(Duration(days: request.durationDays));
       await _client
           .from('properties')
-          .update({'featured': true, 'featured_until': until.toIso8601String()})
+          .update({
+            'featured': true,
+            'featured_until': until.toUtc().toIso8601String(),
+          })
           .eq('id', request.propertyId);
     }
     await NotificationRepository.notify(

@@ -24,7 +24,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   late Stream<Driver?> _driverStream = DriverRepository.streamDriver(
     widget.driverId,
   );
-  bool _centeredOnce = false;
+  LatLng? _lastCenteredPoint;
 
   void _retry() {
     setState(() {
@@ -170,9 +170,18 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                   }
 
                   final point = LatLng(lat, lng);
-                  if (!_centeredOnce) {
-                    _centeredOnce = true;
-                  } else {
+                  // Only re-center when the driver's position actually
+                  // changed — the 5-second freshness-label timer rebuilds
+                  // this widget far more often than the driver actually
+                  // moves, and re-centering on every rebuild fought any
+                  // panning/zooming the customer tried to do. The very
+                  // first snapshot doesn't need a move() call either —
+                  // FlutterMap's initialCenter already puts it there.
+                  if (_lastCenteredPoint == null) {
+                    _lastCenteredPoint = point;
+                  } else if (_lastCenteredPoint!.latitude != point.latitude ||
+                      _lastCenteredPoint!.longitude != point.longitude) {
+                    _lastCenteredPoint = point;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _mapController.move(point, _mapController.camera.zoom);
                     });

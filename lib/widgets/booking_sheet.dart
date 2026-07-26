@@ -72,7 +72,12 @@ class _BookingSheetState extends State<_BookingSheet> {
       await Supabase.instance.client.from('bookings').insert({
         'user_id': userId,
         'property_id': widget.property.id,
-        'scheduled_at': scheduledAt.toIso8601String(),
+        // scheduledAt is built from local wall-clock values (the day/hour
+        // the user picked); toIso8601String() on a non-UTC DateTime omits
+        // any offset, which Postgres then reads as UTC — silently
+        // shifting the stored instant by the local UTC offset. Convert
+        // explicitly so the stored instant matches what was picked.
+        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
       });
       AnalyticsRepository.track('booking_requested', {
         'property_id': widget.property.id,

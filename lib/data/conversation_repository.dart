@@ -53,17 +53,14 @@ class ConversationRepository {
   /// conversation's own creation time if it has none yet) rather than
   /// when the conversation itself was first created, so a reply on an
   /// old thread brings it back to the top.
+  ///
+  /// Uses a server-side RPC that computes just each conversation's single
+  /// latest message, rather than embedding (and pulling to the client)
+  /// every message ever sent in every conversation.
   static Future<List<Map<String, dynamic>>> fetchConversations() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];
-    final rows = await _client
-        .from('conversations')
-        .select(
-          'id, landlord_name, landlord_avatar_url, created_at, '
-          'properties(title, image_url, price_lak), '
-          'messages(text, from_me, created_at)',
-        )
-        .eq('user_id', userId);
+    final rows = await _client.rpc('conversations_with_latest_message');
     final conversations = (rows as List).cast<Map<String, dynamic>>();
     conversations.sort(
       (a, b) => _latestActivity(b).compareTo(_latestActivity(a)),
@@ -72,14 +69,11 @@ class ConversationRepository {
   }
 
   static DateTime _latestActivity(Map<String, dynamic> conversation) {
-    var latest = DateTime.parse(conversation['created_at'] as String);
-    for (final row in conversation['messages'] as List) {
-      final sentAt = DateTime.parse(
-        (row as Map<String, dynamic>)['created_at'] as String,
-      );
-      if (sentAt.isAfter(latest)) latest = sentAt;
-    }
-    return latest;
+    final createdAt = DateTime.parse(conversation['created_at'] as String);
+    final latestMessageAt = conversation['latest_message_created_at'] as String?;
+    if (latestMessageAt == null) return createdAt;
+    final messageAt = DateTime.parse(latestMessageAt);
+    return messageAt.isAfter(createdAt) ? messageAt : createdAt;
   }
 
   static Future<List<Map<String, dynamic>>> fetchMessages(

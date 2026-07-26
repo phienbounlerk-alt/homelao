@@ -118,21 +118,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       ),
                       itemBuilder: (context, i) {
                         final c = _conversations[i];
-                        final property =
-                            c['properties'] as Map<String, dynamic>?;
-                        final messages =
-                            (c['messages'] as List).cast<Map<String, dynamic>>()
-                              ..sort(
-                                (a, b) =>
-                                    DateTime.parse(
-                                      a['created_at'] as String,
-                                    ).compareTo(
-                                      DateTime.parse(b['created_at'] as String),
-                                    ),
-                              );
-                        final lastMessage = messages.isNotEmpty
-                            ? messages.last['text'] as String
-                            : 'ເລີ່ມການສົນທະນາ';
+                        final propertyTitle = c['property_title'] as String?;
+                        final propertyImageUrl =
+                            c['property_image_url'] as String?;
+                        final propertyPriceLak =
+                            c['property_price_lak'] as int?;
+                        final lastMessage =
+                            c['latest_message_text'] as String? ??
+                            'ເລີ່ມການສົນທະນາ';
                         final avatarUrl =
                             c['landlord_avatar_url'] as String? ??
                             _defaultAvatarUrl;
@@ -150,12 +143,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                         conversationId: c['id'] as String,
                                         name: name,
                                         avatarUrl: avatarUrl,
-                                        propertyTitle:
-                                            property?['title'] as String?,
-                                        propertyImageUrl:
-                                            property?['image_url'] as String?,
-                                        propertyPriceLak:
-                                            property?['price_lak'] as int?,
+                                        propertyTitle: propertyTitle,
+                                        propertyImageUrl: propertyImageUrl,
+                                        propertyPriceLak: propertyPriceLak,
                                       ),
                                     ),
                                   )
@@ -188,7 +178,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                             color: AppColors.textPrimary,
                                           ),
                                         ),
-                                        if (property != null) ...[
+                                        if (propertyTitle != null) ...[
                                           const SizedBox(height: 3),
                                           Row(
                                             children: [
@@ -196,8 +186,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                                 child: Image.network(
-                                                  property['image_url']
-                                                      as String,
+                                                  propertyImageUrl ?? '',
                                                   width: 16,
                                                   height: 16,
                                                   fit: BoxFit.cover,
@@ -206,7 +195,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                               const SizedBox(width: 4),
                                               Expanded(
                                                 child: Text(
-                                                  property['title'] as String,
+                                                  propertyTitle,
                                                   maxLines: 1,
                                                   overflow:
                                                       TextOverflow.ellipsis,

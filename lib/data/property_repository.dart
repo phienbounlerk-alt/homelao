@@ -54,7 +54,7 @@ class PropertyRepository {
         .from('properties')
         .select()
         .eq('featured', true)
-        .gt('featured_until', DateTime.now().toIso8601String())
+        .gt('featured_until', DateTime.now().toUtc().toIso8601String())
         .order('featured_until', ascending: false)
         .limit(limit);
     return (rows as List)
@@ -105,12 +105,14 @@ class PropertyRepository {
   }
 
   /// Distinct district names, for the search filter sheet's location chips.
+  /// Distinct districts (the part before the first comma in each
+  /// listing's location string), computed and de-duplicated server-side
+  /// via a small RPC rather than fetching every row's location column —
+  /// the result set stays small regardless of how many listings exist.
   static Future<List<String>> fetchLocations() async {
-    final rows = await _client.from('properties').select('location');
-    return (rows as List)
-        .map((row) => (row as Map<String, dynamic>)['location'] as String)
-        .map((loc) => loc.split(',').first.trim())
-        .toSet()
+    final rows = await _client.rpc('distinct_property_districts') as List;
+    return rows
+        .map((row) => (row as Map<String, dynamic>)['district'] as String)
         .toList();
   }
 
