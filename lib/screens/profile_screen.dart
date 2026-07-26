@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     (Icons.favorite_rounded, 'ຊັບສິນທີ່ບັນທຶກ'),
     (Icons.chat_bubble_rounded, 'ຂໍ້ຄວາມ'),
     (Icons.event_available_rounded, 'ປະຫວັດການຈອງ'),
-    (Icons.payment_rounded, 'ວິທີການຊຳລະເງິນ'),
+    (Icons.star_rounded, 'ຄຳຮ້ອງເຮັດໃຫ້ເດັ່ນ'),
     (Icons.settings_rounded, 'ຕັ້ງຄ່າ'),
     (Icons.help_rounded, 'ສູນຊ່ວຍເຫຼືອ'),
     (Icons.gavel_rounded, 'ເງື່ອນໄຂ ແລະ ຄວາມເປັນສ່ວນຕົວ'),
@@ -140,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ).push(MaterialPageRoute(builder: (_) => const BookingHistoryScreen()));
       return;
     }
-    if (label == 'ວິທີການຊຳລະເງິນ') {
+    if (label == 'ຄຳຮ້ອງເຮັດໃຫ້ເດັ່ນ') {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()));
