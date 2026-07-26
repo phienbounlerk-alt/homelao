@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
+
+const _whatsappNumber = '+856 20 1234 5678';
+const _supportEmail = 'support@homelao.la';
 
 const _faqs = [
   (
@@ -33,6 +38,33 @@ class HelpCenterScreen extends StatefulWidget {
 
 class _HelpCenterScreenState extends State<HelpCenterScreen> {
   int? _expanded;
+
+  Future<void> _launch(Uri uri, String failureMessage) async {
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failureMessage)));
+    }
+  }
+
+  Future<void> _openWhatsApp() {
+    final digits = _whatsappNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    return _launch(
+      Uri.parse('https://wa.me/$digits'),
+      'ເປີດ WhatsApp ບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່',
+    );
+  }
+
+  Future<void> _sendEmail() {
+    return _launch(
+      Uri(scheme: 'mailto', path: _supportEmail),
+      'ເປີດແອັບອີເມວບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,20 +166,22 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Column(
-                      children: const [
+                      children: [
                         _ContactRow(
                           icon: Icons.chat_bubble_rounded,
                           label: 'WhatsApp / WeChat',
-                          value: '+856 20 1234 5678',
+                          value: _whatsappNumber,
+                          onTap: _openWhatsApp,
                         ),
-                        SizedBox(height: 14),
+                        const SizedBox(height: 14),
                         _ContactRow(
                           icon: Icons.email_rounded,
                           label: 'ອີເມວ',
-                          value: 'support@homelao.la',
+                          value: _supportEmail,
+                          onTap: _sendEmail,
                         ),
-                        SizedBox(height: 14),
-                        _ContactRow(
+                        const SizedBox(height: 14),
+                        const _ContactRow(
                           icon: Icons.access_time_rounded,
                           label: 'ເວລາເຮັດວຽກ',
                           value: 'ຈັນ - ສຸກ, 8:00 - 18:00',
@@ -234,15 +268,17 @@ class _ContactRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final row = Row(
       children: [
         Icon(icon, size: 18, color: AppColors.primaryGreen),
         const SizedBox(width: 12),
@@ -262,13 +298,34 @@ class _ContactRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: onTap != null
+                      ? AppColors.primaryGreen
+                      : AppColors.textPrimary,
                 ),
               ),
             ],
           ),
         ),
+        if (onTap != null)
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: AppColors.textSecondary,
+          ),
       ],
+    );
+    if (onTap == null) return row;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: row,
+        ),
+      ),
     );
   }
 }
