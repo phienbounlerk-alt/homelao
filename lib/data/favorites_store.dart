@@ -40,9 +40,12 @@ class FavoritesStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggle(String propertyId) async {
+  /// Returns whether the toggle actually persisted, so callers can tell the
+  /// user when it silently reverted instead of leaving them to wonder why
+  /// the heart didn't stay filled.
+  Future<bool> toggle(String propertyId) async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) return false;
 
     final wasFavorite = _favoriteIds.contains(propertyId);
     wasFavorite
@@ -62,12 +65,14 @@ class FavoritesStore extends ChangeNotifier {
           'property_id': propertyId,
         });
       }
+      return true;
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);
       wasFavorite
           ? _favoriteIds.add(propertyId)
           : _favoriteIds.remove(propertyId);
       notifyListeners();
+      return false;
     }
   }
 }

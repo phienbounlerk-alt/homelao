@@ -40,6 +40,15 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _toggleFavorite(String propertyId) async {
+    final succeeded = await FavoritesStore.instance.toggle(propertyId);
+    if (!succeeded && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ບັນທຶກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
@@ -130,8 +139,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 tooltip: isFavorite
                                     ? 'ຍົກເລີກບັນທຶກ'
                                     : 'ບັນທຶກຊັບສິນ',
-                                onTap: () =>
-                                    FavoritesStore.instance.toggle(property.id),
+                                onTap: () => _toggleFavorite(property.id),
                               ),
                             ],
                           ),

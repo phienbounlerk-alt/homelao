@@ -35,9 +35,14 @@ class _PropertyCardState extends State<PropertyCard> {
     if (mounted) setState(() {});
   }
 
-  void _toggleFavorite() {
-    FavoritesStore.instance.toggle(widget.property.id);
+  Future<void> _toggleFavorite() async {
     setState(() => _favScale = 1.35);
+    final succeeded = await FavoritesStore.instance.toggle(widget.property.id);
+    if (!succeeded && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ບັນທຶກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   @override
