@@ -21,17 +21,32 @@ class ConversationRepository {
         .maybeSingle();
     if (existing != null) return existing['id'] as String;
 
-    final inserted = await _client
-        .from('conversations')
-        .insert({
-          'user_id': userId,
-          'property_id': propertyId,
-          'landlord_name': landlordName,
-          'landlord_avatar_url': landlordAvatarUrl,
-        })
-        .select('id')
-        .single();
-    return inserted['id'] as String;
+    try {
+      final inserted = await _client
+          .from('conversations')
+          .insert({
+            'user_id': userId,
+            'property_id': propertyId,
+            'landlord_name': landlordName,
+            'landlord_avatar_url': landlordAvatarUrl,
+          })
+          .select('id')
+          .single();
+      return inserted['id'] as String;
+    } on PostgrestException catch (e) {
+      // A concurrent call (double-tap, slow-network retry) already
+      // created the row between the select above and this insert —
+      // look up what it created instead of failing the whole open-chat
+      // flow over a race we can recover from.
+      if (e.code != '23505') rethrow;
+      final row = await _client
+          .from('conversations')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('property_id', propertyId)
+          .single();
+      return row['id'] as String;
+    }
   }
 
   /// Ordered by most recent activity (latest message, or the
