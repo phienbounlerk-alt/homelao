@@ -35,6 +35,28 @@ class _BookingSheetState extends State<_BookingSheet> {
   String? _time;
   bool _submitting = false;
 
+  /// Today's slots exclude times already passed, so a user browsing at
+  /// 5pm can't confirm a "today, 09:00" appointment in the past.
+  List<String> get _availableTimeSlots {
+    if (_dayIndex != 0) return _timeSlots;
+    final now = DateTime.now();
+    return _timeSlots.where((t) {
+      final parts = t.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      return hour > now.hour || (hour == now.hour && minute > now.minute);
+    }).toList();
+  }
+
+  void _selectDay(int index) {
+    setState(() {
+      _dayIndex = index;
+      if (_time != null && !_availableTimeSlots.contains(_time)) {
+        _time = null;
+      }
+    });
+  }
+
   Future<void> _confirm() async {
     final day = _days[_dayIndex];
     final time = _time!;
@@ -163,7 +185,7 @@ class _BookingSheetState extends State<_BookingSheet> {
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      onTap: () => setState(() => _dayIndex = i),
+                      onTap: () => _selectDay(i),
                       child: Container(
                         width: 52,
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -209,39 +231,45 @@ class _BookingSheetState extends State<_BookingSheet> {
               ),
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final t in _timeSlots)
-                  Material(
-                    color: _time == t
-                        ? AppColors.primaryGreen
-                        : AppColors.secondaryGreen,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
+            if (_availableTimeSlots.isEmpty)
+              Text(
+                'ບໍ່ມີເວລາຫວ່າງມື້ນີ້ແລ້ວ — ກະລຸນາເລືອກມື້ອື່ນ',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final t in _availableTimeSlots)
+                    Material(
+                      color: _time == t
+                          ? AppColors.primaryGreen
+                          : AppColors.secondaryGreen,
                       borderRadius: BorderRadius.circular(20),
-                      onTap: () => setState(() => _time = t),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 9,
-                        ),
-                        child: Text(
-                          t,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: _time == t
-                                ? Colors.white
-                                : AppColors.primaryGreen,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => setState(() => _time = t),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 9,
+                          ),
+                          child: Text(
+                            t,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: _time == t
+                                  ? Colors.white
+                                  : AppColors.primaryGreen,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
