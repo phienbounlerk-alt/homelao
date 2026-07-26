@@ -351,6 +351,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
+      // Restore what they typed — they shouldn't have to remember and
+      // retype a message just because the send failed.
+      _controller.text = text;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: text.length),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ສົ່ງຂໍ້ຄວາມບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
       );
