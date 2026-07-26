@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_repository.dart';
 import '../models/driver.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_state.dart';
 
 class DriverTrackingScreen extends StatefulWidget {
   const DriverTrackingScreen({super.key, required this.driverId});
@@ -20,8 +21,16 @@ class DriverTrackingScreen extends StatefulWidget {
 
 class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   final _mapController = MapController();
-  late final _driverStream = DriverRepository.streamDriver(widget.driverId);
+  late Stream<Driver?> _driverStream = DriverRepository.streamDriver(
+    widget.driverId,
+  );
   bool _centeredOnce = false;
+
+  void _retry() {
+    setState(() {
+      _driverStream = DriverRepository.streamDriver(widget.driverId);
+    });
+  }
 
   // Purely to refresh the "updated N seconds ago" label between location
   // pushes — the map itself only moves when a new StreamBuilder snapshot
@@ -108,6 +117,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
               child: StreamBuilder<Driver?>(
                 stream: _driverStream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return ErrorState(onRetry: _retry);
+                  }
                   if (!snapshot.hasData) {
                     return Center(
                       child: CircularProgressIndicator(
