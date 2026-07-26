@@ -16,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _contactController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSignup = false;
   bool _obscurePassword = true;
@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _contactController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -52,13 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
       final auth = Supabase.instance.client.auth;
       if (_isSignup) {
         await auth.signUp(
-          email: _contactController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
           data: {'name': _nameController.text.trim()},
         );
       } else {
         await auth.signInWithPassword(
-          email: _contactController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
@@ -139,15 +139,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 18),
                 ],
-                _FieldLabel('ອີເມວ ຫຼື ເບີໂທລະສັບ'),
+                _FieldLabel('ອີເມວ'),
                 const SizedBox(height: 8),
                 _AppTextField(
-                  controller: _contactController,
+                  controller: _emailController,
                   hint: 'you@example.com',
                   icon: Icons.alternate_email_rounded,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'ກະລຸນາປ້ອນອີເມວ ຫຼື ເບີໂທ'
+                      ? 'ກະລຸນາປ້ອນອີເມວ'
                       : null,
                 ),
                 const SizedBox(height: 18),

@@ -22,7 +22,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
     expect(find.text('ເຂົ້າສູ່ລະບົບ'), findsOneWidget);
-    expect(find.text('ອີເມວ ຫຼື ເບີໂທລະສັບ'), findsOneWidget);
+    expect(find.text('ອີເມວ'), findsOneWidget);
     expect(find.text('ຊື່ ແລະ ນາມສະກຸນ'), findsNothing);
   });
 
@@ -41,6 +41,6 @@ void main() {
     await tester.tap(find.text('ເຂົ້າສູ່ລະບົບ').first);
     await tester.pump();
 
-    expect(find.text('ກະລຸນາປ້ອນອີເມວ ຫຼື ເບີໂທ'), findsOneWidget);
+    expect(find.text('ກະລຸນາປ້ອນອີເມວ'), findsOneWidget);
   });
 }
