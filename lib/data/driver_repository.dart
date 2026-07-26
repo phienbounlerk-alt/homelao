@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'notification_repository.dart';
 import '../models/driver.dart';
 import '../models/moving_request.dart';
 
@@ -123,18 +122,17 @@ class DriverRepository {
         .toList();
   }
 
+  /// The accept + customer-notification insert happen together inside the
+  /// RPC's own transaction, since a driver isn't allowed to insert
+  /// notifications directly (that's admin-only under RLS) — a second,
+  /// separate client-side insert call here would always fail after the
+  /// accept had already committed.
   static Future<void> acceptRequest(MovingRequest request) async {
     final driver = await fetchMine();
     if (driver == null) throw StateError('not a registered driver');
     await _client.rpc(
       'accept_moving_request',
       params: {'p_request_id': request.id},
-    );
-    await NotificationRepository.notify(
-      userId: request.customerId,
-      title: 'ຄົນຂັບຮັບຄຳຮ້ອງແລ້ວ',
-      body: '${driver.driverName} (${driver.vehiclePlate}) ຮັບຄຳຮ້ອງຂົນສົ່ງຂອງທ່ານແລ້ວ',
-      type: 'moving_accepted',
     );
   }
 
@@ -145,16 +143,6 @@ class DriverRepository {
     await _client.rpc(
       'update_moving_request_status',
       params: {'p_request_id': request.id, 'p_status': status},
-    );
-    await NotificationRepository.notify(
-      userId: request.customerId,
-      title: status == 'completed'
-          ? 'ຂົນສົ່ງສຳເລັດແລ້ວ'
-          : 'ຄົນຂັບກຳລັງດຳເນີນການຂົນສົ່ງ',
-      body: status == 'completed'
-          ? 'ການຂົນສົ່ງຂອງທ່ານສຳເລັດແລ້ວ ຂອບໃຈທີ່ໃຊ້ບໍລິການ'
-          : 'ຄົນຂັບອອກເດີນທາງໄປຮັບເຄື່ອງຂອງທ່ານແລ້ວ',
-      type: 'moving_$status',
     );
   }
 
