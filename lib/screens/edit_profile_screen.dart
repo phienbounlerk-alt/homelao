@@ -73,7 +73,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ກະລຸນາປ້ອນຊື່')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       await Supabase.instance.client.auth.updateUser(

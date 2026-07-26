@@ -447,6 +447,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             child: _NumberField(
                               label: 'ຫ້ອງນອນ',
                               controller: _bedsController,
+                              validator: _validateNonNegativeNumber,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -454,6 +455,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             child: _NumberField(
                               label: 'ຫ້ອງນ້ຳ',
                               controller: _bathsController,
+                              validator: _validateNonNegativeNumber,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -461,6 +463,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             child: _NumberField(
                               label: 'ເນື້ອທີ່ (ຕມ.)',
                               controller: _areaController,
+                              validator: _validateNonNegativeNumber,
                             ),
                           ),
                         ],
@@ -594,11 +597,27 @@ class _FormInput extends StatelessWidget {
   }
 }
 
+/// Shared by beds/baths/area — a non-numeric or negative value here would
+/// otherwise silently post as 0 via int.tryParse(...) ?? 0, with nothing
+/// telling the owner their listing went out with the wrong count.
+String? _validateNonNegativeNumber(String? value) {
+  final text = value?.trim() ?? '';
+  if (text.isEmpty) return 'ຕ້ອງການ';
+  final parsed = int.tryParse(text);
+  if (parsed == null || parsed < 0) return 'ຄ່າບໍ່ຖືກຕ້ອງ';
+  return null;
+}
+
 class _NumberField extends StatelessWidget {
-  const _NumberField({required this.label, required this.controller});
+  const _NumberField({
+    required this.label,
+    required this.controller,
+    required this.validator,
+  });
 
   final String label;
   final TextEditingController controller;
+  final String? Function(String?) validator;
 
   @override
   Widget build(BuildContext context) {
@@ -609,6 +628,7 @@ class _NumberField extends StatelessWidget {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          validator: validator,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
@@ -621,6 +641,14 @@ class _NumberField extends StatelessWidget {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
             ),
           ),
         ),

@@ -48,6 +48,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Optimistically flips the switch, then persists it — reverting and
+  /// telling the user if the write fails, instead of leaving the switch
+  /// showing a state that silently isn't actually saved.
+  Future<void> _updatePref({
+    required NotificationPrefs Function(NotificationPrefs) apply,
+    required String column,
+    required bool value,
+  }) async {
+    final previous = _prefs;
+    setState(() => _prefs = apply(_prefs));
+    try {
+      await NotificationPrefsRepository.setPref(column: column, value: value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _prefs = previous);
+      _showMessage('ບັນທຶກການຕັ້ງຄ່າບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່');
+    }
+  }
+
   Future<void> _changePassword() async {
     final newPassword = _newPasswordController.text;
     if (newPassword.length < 6) {
@@ -162,17 +181,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _SwitchTile(
                                 label: 'ສະຖານະປະກາດ',
                                 value: _prefs.listingUpdates,
-                                onChanged: (v) {
-                                  setState(
-                                    () => _prefs = _prefs.copyWith(
-                                      listingUpdates: v,
-                                    ),
-                                  );
-                                  NotificationPrefsRepository.setPref(
-                                    column: 'listing_updates',
-                                    value: v,
-                                  );
-                                },
+                                onChanged: (v) => _updatePref(
+                                  apply: (p) =>
+                                      p.copyWith(listingUpdates: v),
+                                  column: 'listing_updates',
+                                  value: v,
+                                ),
                               ),
                               Divider(
                                 height: 1,
@@ -183,17 +197,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _SwitchTile(
                                 label: 'ສະໝັກເປັນຄົນຂັບ',
                                 value: _prefs.driverUpdates,
-                                onChanged: (v) {
-                                  setState(
-                                    () => _prefs = _prefs.copyWith(
-                                      driverUpdates: v,
-                                    ),
-                                  );
-                                  NotificationPrefsRepository.setPref(
-                                    column: 'driver_updates',
-                                    value: v,
-                                  );
-                                },
+                                onChanged: (v) => _updatePref(
+                                  apply: (p) => p.copyWith(driverUpdates: v),
+                                  column: 'driver_updates',
+                                  value: v,
+                                ),
                               ),
                               Divider(
                                 height: 1,
@@ -204,17 +212,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _SwitchTile(
                                 label: 'ບໍລິການຂົນສົ່ງ',
                                 value: _prefs.movingUpdates,
-                                onChanged: (v) {
-                                  setState(
-                                    () => _prefs = _prefs.copyWith(
-                                      movingUpdates: v,
-                                    ),
-                                  );
-                                  NotificationPrefsRepository.setPref(
-                                    column: 'moving_updates',
-                                    value: v,
-                                  );
-                                },
+                                onChanged: (v) => _updatePref(
+                                  apply: (p) => p.copyWith(movingUpdates: v),
+                                  column: 'moving_updates',
+                                  value: v,
+                                ),
                               ),
                             ],
                           ),

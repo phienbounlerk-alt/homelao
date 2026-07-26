@@ -4,6 +4,7 @@ import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
 import '../models/app_notification.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_state.dart';
 import 'property_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -14,13 +15,20 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late final _stream = NotificationRepository.streamMine();
+  late Stream<List<AppNotification>> _stream =
+      NotificationRepository.streamMine();
   NotificationPrefs _prefs = const NotificationPrefs();
 
   @override
   void initState() {
     super.initState();
     _loadPrefs();
+  }
+
+  void _retry() {
+    setState(() {
+      _stream = NotificationRepository.streamMine();
+    });
   }
 
   Future<void> _loadPrefs() async {
@@ -130,6 +138,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: StreamBuilder<List<AppNotification>>(
                 stream: _stream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return ErrorState(onRetry: _retry);
+                  }
                   if (!snapshot.hasData) {
                     return Center(
                       child: CircularProgressIndicator(

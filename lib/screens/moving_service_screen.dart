@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_repository.dart';
 import '../models/moving_request.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_state.dart';
 import 'driver_tracking_screen.dart';
 
 const _vehicleTypes = ['ລົດກະບະ', 'ລົດບັນທຸກກາງ', 'ລົດບັນທຸກໃຫຍ່'];
@@ -312,14 +313,31 @@ class _NewRequestTabState extends State<_NewRequestTab> {
   }
 }
 
-class _MyRequestsTab extends StatelessWidget {
+class _MyRequestsTab extends StatefulWidget {
   const _MyRequestsTab();
+
+  @override
+  State<_MyRequestsTab> createState() => _MyRequestsTabState();
+}
+
+class _MyRequestsTabState extends State<_MyRequestsTab> {
+  late Stream<List<MovingRequest>> _stream =
+      DriverRepository.streamMyRequests();
+
+  void _retry() {
+    setState(() {
+      _stream = DriverRepository.streamMyRequests();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<MovingRequest>>(
-      stream: DriverRepository.streamMyRequests(),
+      stream: _stream,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return ErrorState(onRetry: _retry);
+        }
         if (!snapshot.hasData) {
           return Center(
             child: CircularProgressIndicator(color: AppColors.primaryGreen),
