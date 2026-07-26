@@ -34,6 +34,10 @@ class ConversationRepository {
     return inserted['id'] as String;
   }
 
+  /// Ordered by most recent activity (latest message, or the
+  /// conversation's own creation time if it has none yet) rather than
+  /// when the conversation itself was first created, so a reply on an
+  /// old thread brings it back to the top.
   static Future<List<Map<String, dynamic>>> fetchConversations() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];
@@ -44,9 +48,23 @@ class ConversationRepository {
           'properties(title, image_url, price_lak), '
           'messages(text, from_me, created_at)',
         )
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-    return (rows as List).cast<Map<String, dynamic>>();
+        .eq('user_id', userId);
+    final conversations = (rows as List).cast<Map<String, dynamic>>();
+    conversations.sort(
+      (a, b) => _latestActivity(b).compareTo(_latestActivity(a)),
+    );
+    return conversations;
+  }
+
+  static DateTime _latestActivity(Map<String, dynamic> conversation) {
+    var latest = DateTime.parse(conversation['created_at'] as String);
+    for (final row in conversation['messages'] as List) {
+      final sentAt = DateTime.parse(
+        (row as Map<String, dynamic>)['created_at'] as String,
+      );
+      if (sentAt.isAfter(latest)) latest = sentAt;
+    }
+    return latest;
   }
 
   static Future<List<Map<String, dynamic>>> fetchMessages(
