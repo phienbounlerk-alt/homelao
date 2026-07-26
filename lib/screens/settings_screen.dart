@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/notification_prefs_repository.dart';
 import '../theme/app_theme.dart';
-
-const _kNewListingsKey = 'notif_new_listings';
-const _kMessagesKey = 'notif_messages';
-const _kBookingKey = 'notif_booking_reminders';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,9 +11,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _newListings = true;
-  bool _messages = true;
-  bool _bookingReminders = true;
+  NotificationPrefs _prefs = const NotificationPrefs();
   bool _loadingPrefs = true;
 
   final _newPasswordController = TextEditingController();
@@ -39,19 +33,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await NotificationPrefsRepository.fetchMine();
     if (!mounted) return;
     setState(() {
-      _newListings = prefs.getBool(_kNewListingsKey) ?? true;
-      _messages = prefs.getBool(_kMessagesKey) ?? true;
-      _bookingReminders = prefs.getBool(_kBookingKey) ?? true;
+      _prefs = prefs;
       _loadingPrefs = false;
     });
-  }
-
-  Future<void> _setPref(String key, bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
   }
 
   void _showMessage(String message) {
@@ -173,11 +160,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : Column(
                             children: [
                               _SwitchTile(
-                                label: 'ລາຍການໃໝ່',
-                                value: _newListings,
+                                label: 'ສະຖານະປະກາດ',
+                                value: _prefs.listingUpdates,
                                 onChanged: (v) {
-                                  setState(() => _newListings = v);
-                                  _setPref(_kNewListingsKey, v);
+                                  setState(
+                                    () => _prefs = _prefs.copyWith(
+                                      listingUpdates: v,
+                                    ),
+                                  );
+                                  NotificationPrefsRepository.setPref(
+                                    column: 'listing_updates',
+                                    value: v,
+                                  );
                                 },
                               ),
                               Divider(
@@ -187,11 +181,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 color: AppColors.cardBorder,
                               ),
                               _SwitchTile(
-                                label: 'ຂໍ້ຄວາມ',
-                                value: _messages,
+                                label: 'ສະໝັກເປັນຄົນຂັບ',
+                                value: _prefs.driverUpdates,
                                 onChanged: (v) {
-                                  setState(() => _messages = v);
-                                  _setPref(_kMessagesKey, v);
+                                  setState(
+                                    () => _prefs = _prefs.copyWith(
+                                      driverUpdates: v,
+                                    ),
+                                  );
+                                  NotificationPrefsRepository.setPref(
+                                    column: 'driver_updates',
+                                    value: v,
+                                  );
                                 },
                               ),
                               Divider(
@@ -201,11 +202,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 color: AppColors.cardBorder,
                               ),
                               _SwitchTile(
-                                label: 'ແຈ້ງເຕືອນນັດໝາຍ',
-                                value: _bookingReminders,
+                                label: 'ບໍລິການຂົນສົ່ງ',
+                                value: _prefs.movingUpdates,
                                 onChanged: (v) {
-                                  setState(() => _bookingReminders = v);
-                                  _setPref(_kBookingKey, v);
+                                  setState(
+                                    () => _prefs = _prefs.copyWith(
+                                      movingUpdates: v,
+                                    ),
+                                  );
+                                  NotificationPrefsRepository.setPref(
+                                    column: 'moving_updates',
+                                    value: v,
+                                  );
                                 },
                               ),
                             ],

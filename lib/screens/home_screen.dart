@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import '../data/notification_prefs_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
 import '../models/app_notification.dart';
@@ -422,6 +423,15 @@ class _TopBarState extends State<_TopBar> {
   // unrelated setState calls elsewhere on Home) don't tear down and
   // resubscribe the realtime notifications stream every time.
   late final _notifications = NotificationRepository.streamMine();
+  NotificationPrefs _prefs = const NotificationPrefs();
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationPrefsRepository.fetchMine().then((prefs) {
+      if (mounted) setState(() => _prefs = prefs);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -466,7 +476,11 @@ class _TopBarState extends State<_TopBar> {
         StreamBuilder<List<AppNotification>>(
           stream: _notifications,
           builder: (context, snapshot) {
-            final unread = snapshot.data?.where((n) => !n.read).length ?? 0;
+            final unread =
+                snapshot.data
+                    ?.where((n) => !n.read && _prefs.allowsType(n.type))
+                    .length ??
+                0;
             return Material(
               color: Colors.transparent,
               shape: const CircleBorder(),

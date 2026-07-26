@@ -26,7 +26,8 @@ class AppNotification {
   final String body;
 
   /// 'listing_approved' | 'listing_rejected' | 'feature_confirmed' |
-  /// 'feature_rejected'.
+  /// 'feature_rejected' | 'driver_approved' | 'driver_rejected' |
+  /// 'moving_accepted' | 'moving_in_progress' | 'moving_completed'.
   final String type;
   final bool read;
   final DateTime createdAt;

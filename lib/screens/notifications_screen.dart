@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/notification_prefs_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
 import '../models/app_notification.dart';
@@ -14,6 +15,19 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late final _stream = NotificationRepository.streamMine();
+  NotificationPrefs _prefs = const NotificationPrefs();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await NotificationPrefsRepository.fetchMine();
+    if (!mounted) return;
+    setState(() => _prefs = prefs);
+  }
 
   Future<void> _openNotification(AppNotification n) async {
     if (!n.read) NotificationRepository.markRead(n.id);
@@ -123,7 +137,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                     );
                   }
-                  final notifications = snapshot.data!;
+                  final notifications = snapshot.data!
+                      .where((n) => _prefs.allowsType(n.type))
+                      .toList(growable: false);
                   if (notifications.isEmpty) {
                     return Center(
                       child: Column(
