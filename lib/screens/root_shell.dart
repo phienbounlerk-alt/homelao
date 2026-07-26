@@ -23,11 +23,14 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _navIndex = 0;
 
-  // Bumped whenever Home's map card is tapped so SearchScreen gets a fresh
-  // Key and re-consumes initialNearMe — a normal bottom-nav tap over to
-  // Search must NOT re-trigger it, only this explicit shortcut should.
+  // Bumped whenever a Home shortcut (map card, category, trending location)
+  // is tapped so SearchScreen gets a fresh Key and re-consumes the initial*
+  // params below — a normal bottom-nav tap over to Search must NOT
+  // re-trigger any of them, only these explicit shortcuts should.
   int _searchGeneration = 0;
   bool _searchAutoNearMe = false;
+  String? _searchInitialCategory;
+  String? _searchInitialQuery;
 
   static const _tabNames = ['home', 'search', null, 'messages', 'profile'];
 
@@ -59,6 +62,30 @@ class _RootShellState extends State<RootShell> {
     AnalyticsRepository.track('screen_view', {'screen': 'search'});
     setState(() {
       _searchAutoNearMe = true;
+      _searchInitialCategory = null;
+      _searchInitialQuery = null;
+      _searchGeneration++;
+      _navIndex = 1;
+    });
+  }
+
+  void _openCategorySearch(String category) {
+    AnalyticsRepository.track('screen_view', {'screen': 'search'});
+    setState(() {
+      _searchAutoNearMe = false;
+      _searchInitialCategory = category;
+      _searchInitialQuery = null;
+      _searchGeneration++;
+      _navIndex = 1;
+    });
+  }
+
+  void _openLocationSearch(String city) {
+    AnalyticsRepository.track('screen_view', {'screen': 'search'});
+    setState(() {
+      _searchAutoNearMe = false;
+      _searchInitialCategory = null;
+      _searchInitialQuery = city;
       _searchGeneration++;
       _navIndex = 1;
     });
@@ -71,10 +98,17 @@ class _RootShellState extends State<RootShell> {
       body: IndexedStack(
         index: _bodyIndex,
         children: [
-          HomeScreen(onNavigate: _onNavTap, onOpenMap: _openNearMeSearch),
+          HomeScreen(
+            onNavigate: _onNavTap,
+            onOpenMap: _openNearMeSearch,
+            onOpenCategory: _openCategorySearch,
+            onOpenLocation: _openLocationSearch,
+          ),
           SearchScreen(
             key: ValueKey(_searchGeneration),
             initialNearMe: _searchAutoNearMe,
+            initialCategory: _searchInitialCategory,
+            initialQuery: _searchInitialQuery,
           ),
           const MessagesScreen(),
           ProfileScreen(onNavigate: _onNavTap),

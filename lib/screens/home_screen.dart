@@ -23,6 +23,8 @@ class HomeScreen extends StatefulWidget {
     super.key,
     required this.onNavigate,
     required this.onOpenMap,
+    required this.onOpenCategory,
+    required this.onOpenLocation,
   });
 
   /// Switches the parent shell's active tab (or pushes a route for the
@@ -31,6 +33,12 @@ class HomeScreen extends StatefulWidget {
 
   /// Jumps to Search with "near me" pre-activated, for the map card.
   final VoidCallback onOpenMap;
+
+  /// Jumps to Search with the tapped category chip pre-activated.
+  final ValueChanged<String> onOpenCategory;
+
+  /// Jumps to Search pre-filled with the tapped trending location's name.
+  final ValueChanged<String> onOpenLocation;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -216,7 +224,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           for (final c in _categories.sublist(0, 4))
-                            CategoryItem(icon: c.$1, label: c.$2),
+                            CategoryItem(
+                              icon: c.$1,
+                              label: c.$2,
+                              onTap: () => widget.onOpenCategory(c.$2),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 18),
@@ -224,7 +236,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           for (final c in _categories.sublist(4, 8))
-                            CategoryItem(icon: c.$1, label: c.$2),
+                            CategoryItem(
+                              icon: c.$1,
+                              label: c.$2,
+                              onTap: () => widget.onOpenCategory(c.$2),
+                            ),
                         ],
                       ),
                     ],
@@ -375,6 +391,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, i) => LocationChip(
                       name: _trendingLocations[i].$1,
                       imageUrl: _trendingLocations[i].$2,
+                      onTap: () =>
+                          widget.onOpenLocation(_trendingLocations[i].$1),
                     ),
                   ),
                 ),

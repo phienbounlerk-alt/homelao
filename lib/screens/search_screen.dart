@@ -12,12 +12,29 @@ import '../widgets/filter_sheet.dart';
 import '../widgets/property_card.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, this.initialNearMe = false});
+  const SearchScreen({
+    super.key,
+    this.initialNearMe = false,
+    this.initialCategory,
+    this.initialQuery,
+  });
 
   /// Set when the user reached this screen via a shortcut that already
   /// implies "near me" (e.g. Home's map card), so it activates without
   /// requiring a second tap.
   final bool initialNearMe;
+
+  /// Set when reached via Home's category shortcuts, so the matching
+  /// category chip is already active. Must match one of [_categories]'
+  /// labels to render as selected — anything else still filters correctly
+  /// (the query is a plain title match) but just won't highlight a chip.
+  final String? initialCategory;
+
+  /// Set when reached via Home's trending-location shortcuts. Routed
+  /// through the free-text query (not [SearchFilters.location], which
+  /// prefix-matches district names) since a city name like "ວຽງຈັນ" only
+  /// ever appears as the second half of a "district, city" location string.
+  final String? initialQuery;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -64,6 +81,13 @@ class _SearchScreenState extends State<SearchScreen> {
     PropertyRepository.fetchLocations().then((locs) {
       if (mounted) setState(() => _locations = locs);
     });
+    if (widget.initialCategory != null) {
+      _activeCategory = widget.initialCategory;
+    }
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _query = widget.initialQuery!;
+      _controller.text = widget.initialQuery!;
+    }
     _loadPage(reset: true);
     if (widget.initialNearMe) _toggleNearMe();
   }
