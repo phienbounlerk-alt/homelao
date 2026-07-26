@@ -143,30 +143,44 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, i) {
                         final booking = _bookings[i];
+                        final property = booking.property;
                         return Material(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(18),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(18),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PropertyDetailScreen(
-                                  property: booking.property,
-                                ),
-                              ),
-                            ),
+                            onTap: property == null
+                                ? null
+                                : () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          PropertyDetailScreen(
+                                            property: property,
+                                          ),
+                                    ),
+                                  ),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(14),
-                                    child: Image.network(
-                                      booking.property.imageUrl,
-                                      width: 64,
-                                      height: 64,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: property == null
+                                        ? Container(
+                                            width: 64,
+                                            height: 64,
+                                            color: AppColors.surfaceAlt,
+                                            child: Icon(
+                                              Icons.home_outlined,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          )
+                                        : Image.network(
+                                            property.imageUrl,
+                                            width: 64,
+                                            height: 64,
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -175,13 +189,16 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          booking.property.title,
+                                          property?.title ??
+                                              'ລາຍການນີ້ຖືກລຶບແລ້ວ',
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.textPrimary,
+                                            color: property == null
+                                                ? AppColors.textSecondary
+                                                : AppColors.textPrimary,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -208,10 +225,11 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                       ],
                                     ),
                                   ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  if (property != null)
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppColors.textSecondary,
+                                    ),
                                 ],
                               ),
                             ),
