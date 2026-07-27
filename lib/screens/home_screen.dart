@@ -5,6 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/notification_prefs_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
+import '../data/trending_locations.dart';
 import '../models/app_notification.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
@@ -129,33 +130,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
-  static const _trendingLocations = [
-    (
-      'ວຽງຈັນ',
-      'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=100&q=80',
-    ),
-    (
-      'ຫລວງພະບາງ',
-      'https://images.unsplash.com/photo-1528181304800-259b08848526?w=100&q=80',
-    ),
-    (
-      'ປາກເຊ',
-      'https://images.unsplash.com/photo-1512100356356-de1b84283e18?w=100&q=80',
-    ),
-    (
-      'ສະຫວັນນະເຂດ',
-      'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=100&q=80',
-    ),
-    (
-      'ທ່າແຂກ',
-      'https://images.unsplash.com/photo-1509644851169-2acc08aa25b5?w=100&q=80',
-    ),
-    (
-      'ວັງວຽງ',
-      'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=100&q=80',
-    ),
-  ];
 
   List<Property> get _recentlyViewed =>
       [..._recommended, ..._newestListings].take(5).toList();
@@ -386,13 +360,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                     scrollDirection: Axis.horizontal,
-                    itemCount: _trendingLocations.length,
+                    itemCount: trendingLocations.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 10),
                     itemBuilder: (context, i) => LocationChip(
-                      name: _trendingLocations[i].$1,
-                      imageUrl: _trendingLocations[i].$2,
+                      name: trendingLocations[i].$1,
+                      imageUrl: trendingLocations[i].$2,
                       onTap: () =>
-                          widget.onOpenLocation(_trendingLocations[i].$1),
+                          widget.onOpenLocation(trendingLocations[i].$1),
                     ),
                   ),
                 ),

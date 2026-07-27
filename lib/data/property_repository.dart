@@ -16,6 +16,8 @@ class PropertyRepository {
     double? maxPrice,
     int? minBeds,
     String? location,
+    bool? parking,
+    bool? petFriendly,
   }) async {
     final trimmedQuery = query?.trim();
     final trimmedCategory = category?.trim();
@@ -23,8 +25,22 @@ class PropertyRepository {
 
     var builder = _client.from('properties').select();
     if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
-      final escaped = trimmedQuery.replaceAll(',', ' ').replaceAll('%', ' ');
-      builder = builder.or('title.ilike.%$escaped%,location.ilike.%$escaped%');
+      // Matched per word (not as one whole phrase) — a cleaned-up natural-
+      // language query like "ຫ້ອງ ມະຫາວິທະຍາໄລ" would never appear
+      // verbatim in a listing's title/location/description, but each word
+      // individually is a real, useful match against them.
+      final words = trimmedQuery
+          .split(RegExp(r'\s+'))
+          .map((w) => w.replaceAll(',', ' ').replaceAll('%', ' ').trim())
+          .where((w) => w.isNotEmpty);
+      final clauses = [
+        for (final w in words) ...[
+          'title.ilike.%$w%',
+          'location.ilike.%$w%',
+          'description.ilike.%$w%',
+        ],
+      ];
+      if (clauses.isNotEmpty) builder = builder.or(clauses.join(','));
     }
     if (trimmedCategory != null && trimmedCategory.isNotEmpty) {
       builder = builder.ilike('title', '%$trimmedCategory%');
@@ -35,6 +51,8 @@ class PropertyRepository {
     if (trimmedLocation != null && trimmedLocation.isNotEmpty) {
       builder = builder.ilike('location', '$trimmedLocation%');
     }
+    if (parking == true) builder = builder.eq('parking', true);
+    if (petFriendly == true) builder = builder.eq('pet_friendly', true);
 
     final from = page * pageSize;
     final to = from + pageSize - 1;
@@ -172,6 +190,8 @@ class PropertyRepository {
     required String description,
     double? lat,
     double? lng,
+    bool parking = false,
+    bool petFriendly = false,
   }) async {
     await _client
         .from('properties')
@@ -186,10 +206,39 @@ class PropertyRepository {
           'area_sqm': areaSqm,
           'description': description,
           'status': 'pending',
+          'parking': parking,
+          'pet_friendly': petFriendly,
           'lat': ?lat,
           'lng': ?lng,
         })
         .eq('id', id);
+  }
+
+  /// Other listings that resemble [property] — same district, a similar
+  /// price (±20%), or the same bed count. Not a learned/ML similarity —
+  /// just an honest heuristic over columns that already exist, ranked by
+  /// rating since there's no relevance score to sort by.
+  static Future<List<Property>> fetchSimilar(
+    Property property, {
+    int limit = 6,
+  }) async {
+    final district = property.location.split(',').first.trim();
+    final minPrice = (property.priceLak * 0.8).round();
+    final maxPrice = (property.priceLak * 1.2).round();
+    final rows = await _client
+        .from('properties')
+        .select()
+        .neq('id', property.id)
+        .or(
+          'location.ilike.$district%,'
+          'and(price_lak.gte.$minPrice,price_lak.lte.$maxPrice),'
+          'beds.eq.${property.beds}',
+        )
+        .order('rating', ascending: false)
+        .limit(limit);
+    return (rows as List)
+        .map((row) => Property.fromMap(row as Map<String, dynamic>))
+        .toList();
   }
 
   static Future<void> delete(String id) async {

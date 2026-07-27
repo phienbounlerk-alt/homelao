@@ -24,6 +24,8 @@ class Property {
     this.ownerId,
     this.distanceKm,
     this.photos = const [],
+    this.parking = false,
+    this.petFriendly = false,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -58,6 +60,8 @@ class Property {
           : null,
       ownerId: map['owner_id'] as String?,
       photos: (map['photos'] as List?)?.cast<String>() ?? const [],
+      parking: map['parking'] as bool? ?? false,
+      petFriendly: map['pet_friendly'] as bool? ?? false,
     );
   }
 
@@ -89,6 +93,9 @@ class Property {
   /// [imageUrl] for rows that predate this field.
   final List<String> photos;
 
+  final bool parking;
+  final bool petFriendly;
+
   /// Photos to actually render — never empty, even for old rows.
   List<String> get displayPhotos => photos.isNotEmpty ? photos : [imageUrl];
 
@@ -117,6 +124,8 @@ class Property {
     ownerId: ownerId,
     distanceKm: km,
     photos: photos,
+    parking: parking,
+    petFriendly: petFriendly,
   );
 
   /// Whether the paid featured-listing boost is still within its window —

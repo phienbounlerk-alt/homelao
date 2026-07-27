@@ -8,23 +8,49 @@ class SearchFilters {
     this.priceRange = const RangeValues(0, kFilterMaxPrice),
     this.minBeds,
     this.location,
+    this.parking = false,
+    this.petFriendly = false,
   });
 
   final RangeValues priceRange;
   final int? minBeds;
   final String? location;
+  final bool parking;
+  final bool petFriendly;
+
+  SearchFilters copyWith({
+    RangeValues? priceRange,
+    int? minBeds,
+    bool clearMinBeds = false,
+    String? location,
+    bool clearLocation = false,
+    bool? parking,
+    bool? petFriendly,
+  }) {
+    return SearchFilters(
+      priceRange: priceRange ?? this.priceRange,
+      minBeds: clearMinBeds ? null : (minBeds ?? this.minBeds),
+      location: clearLocation ? null : (location ?? this.location),
+      parking: parking ?? this.parking,
+      petFriendly: petFriendly ?? this.petFriendly,
+    );
+  }
 
   bool get isActive =>
       priceRange.start > 0 ||
       priceRange.end < kFilterMaxPrice ||
       minBeds != null ||
-      location != null;
+      location != null ||
+      parking ||
+      petFriendly;
 
   int get activeCount {
     var count = 0;
     if (priceRange.start > 0 || priceRange.end < kFilterMaxPrice) count++;
     if (minBeds != null) count++;
     if (location != null) count++;
+    if (parking) count++;
+    if (petFriendly) count++;
     return count;
   }
 }
@@ -56,6 +82,8 @@ class _FilterSheetState extends State<_FilterSheet> {
   late RangeValues _priceRange = widget.initial.priceRange;
   late int? _minBeds = widget.initial.minBeds;
   late String? _location = widget.initial.location;
+  late bool _parking = widget.initial.parking;
+  late bool _petFriendly = widget.initial.petFriendly;
 
   static const _bedOptions = [1, 2, 3, 4];
 
@@ -110,6 +138,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                     _priceRange = const RangeValues(0, kFilterMaxPrice);
                     _minBeds = null;
                     _location = null;
+                    _parking = false;
+                    _petFriendly = false;
                   }),
                   child: Text(
                     'ລ້າງຄ່າ',
@@ -198,6 +228,32 @@ class _FilterSheetState extends State<_FilterSheet> {
                   ),
               ],
             ),
+            const SizedBox(height: 20),
+            Text(
+              'ສິ່ງອຳນວຍຄວາມສະດວກ',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _Chip(
+                  label: 'ມີບ່ອນຈອດລົດ',
+                  selected: _parking,
+                  onTap: () => setState(() => _parking = !_parking),
+                ),
+                _Chip(
+                  label: 'ລ້ຽງສັດໄດ້',
+                  selected: _petFriendly,
+                  onTap: () => setState(() => _petFriendly = !_petFriendly),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -211,6 +267,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                       priceRange: _priceRange,
                       minBeds: _minBeds,
                       location: _location,
+                      parking: _parking,
+                      petFriendly: _petFriendly,
                     ),
                   ),
                   child: const Padding(

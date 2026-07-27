@@ -38,6 +38,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
   double? _lat;
   double? _lng;
   bool _locating = false;
+  bool _parking = false;
+  bool _petFriendly = false;
 
   static const _maxPhotos = 6;
 
@@ -65,6 +67,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
     _bathsController.text = existing.baths.toString();
     _areaController.text = existing.areaSqm.toString();
     _descController.text = existing.description;
+    _parking = existing.parking;
+    _petFriendly = existing.petFriendly;
     _photos.addAll(existing.photos.isNotEmpty ? existing.photos : [existing.imageUrl]);
     // The listing's category was never persisted when it was first posted,
     // so there's nothing to restore it from — the owner just re-picks it.
@@ -217,6 +221,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           description: _descController.text.trim(),
           lat: _lat,
           lng: _lng,
+          parking: _parking,
+          petFriendly: _petFriendly,
         );
         AnalyticsRepository.track('listing_resubmitted', {
           'category': _selectedType,
@@ -235,6 +241,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'views': 0,
           'description': _descController.text.trim(),
           'photos': _photos,
+          'parking': _parking,
+          'pet_friendly': _petFriendly,
           'landlord_name': ?landlordName,
           'landlord_avatar_url': ?landlordAvatarUrl,
           if (_lat != null) 'lat': _lat,
@@ -469,6 +477,36 @@ class _PostListingScreenState extends State<PostListingScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      const _FieldLabel('ສິ່ງອຳນວຍຄວາມສະດວກ'),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          children: [
+                            _AmenityToggle(
+                              label: 'ມີບ່ອນຈອດລົດ',
+                              value: _parking,
+                              onChanged: (v) => setState(() => _parking = v),
+                            ),
+                            Divider(
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                              color: AppColors.cardBorder,
+                            ),
+                            _AmenityToggle(
+                              label: 'ລ້ຽງສັດໄດ້',
+                              value: _petFriendly,
+                              onChanged: (v) =>
+                                  setState(() => _petFriendly = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       const _FieldLabel('ລາຍລະອຽດ'),
                       const SizedBox(height: 8),
                       _FormInput(
@@ -543,6 +581,44 @@ class _FieldLabel extends StatelessWidget {
         fontSize: 13.5,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
+class _AmenityToggle extends StatelessWidget {
+  const _AmenityToggle({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.primaryGreen,
+          ),
+        ],
       ),
     );
   }

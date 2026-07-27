@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/analytics_repository.dart';
 import '../data/conversation_repository.dart';
 import '../data/favorites_store.dart';
+import '../data/property_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/booking_sheet.dart';
+import '../widgets/property_card.dart';
 import 'messages_screen.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
@@ -348,6 +351,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             ],
                           ),
                         ),
+                        _SimilarPropertiesSection(property: property),
                       ],
                     ),
                   ),
@@ -440,6 +444,70 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Other listings that resemble this one — same district, similar price,
+/// or the same bed count (see PropertyRepository.fetchSimilar). Not a
+/// learned recommendation; quietly hides itself if nothing matches rather
+/// than showing an empty section.
+class _SimilarPropertiesSection extends StatefulWidget {
+  const _SimilarPropertiesSection({required this.property});
+
+  final Property property;
+
+  @override
+  State<_SimilarPropertiesSection> createState() =>
+      _SimilarPropertiesSectionState();
+}
+
+class _SimilarPropertiesSectionState
+    extends State<_SimilarPropertiesSection> {
+  List<Property>? _similar;
+
+  @override
+  void initState() {
+    super.initState();
+    PropertyRepository.fetchSimilar(widget.property)
+        .then((results) {
+          if (mounted) setState(() => _similar = results);
+        })
+        .catchError((Object e, StackTrace st) {
+          Sentry.captureException(e, stackTrace: st);
+          if (mounted) setState(() => _similar = const []);
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final similar = _similar;
+    if (similar == null || similar.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ຊັບສິນທີ່ຄ້າຍຄືກັນ',
+            style: TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 320,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: similar.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemBuilder: (context, i) => PropertyCard(property: similar[i]),
             ),
           ),
         ],

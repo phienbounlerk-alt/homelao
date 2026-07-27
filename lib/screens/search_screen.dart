@@ -5,10 +5,14 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/analytics_repository.dart';
 import '../data/geolocation.dart';
 import '../data/property_repository.dart';
+import '../data/search_history_store.dart';
+import '../data/search_query_parser.dart';
+import '../data/trending_locations.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
 import '../widgets/filter_sheet.dart';
+import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -46,9 +50,16 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? _debounce;
 
   String _query = '';
+  // The cleaned-up query actually sent to the server after natural-
+  // language parsing (price/beds/parking/pet-friendly phrases stripped
+  // out into _filters) — null means "nothing parsed yet, use _query as-is".
+  String? _effectiveQuery;
+  List<String> _parsedMatches = [];
   String? _activeCategory;
   SearchFilters _filters = const SearchFilters();
   List<String> _locations = [];
+  List<String> _recentSearches = [];
+  List<(String, int)> _popularSearches = [];
 
   static const _pageSize = 10;
   final List<Property> _results = [];
@@ -80,6 +91,14 @@ class _SearchScreenState extends State<SearchScreen> {
     _scrollController.addListener(_onScroll);
     PropertyRepository.fetchLocations().then((locs) {
       if (mounted) setState(() => _locations = locs);
+    });
+    SearchHistoryStore.recent().then((recent) {
+      if (mounted) setState(() => _recentSearches = recent);
+    });
+    AnalyticsRepository.topSearches().then((popular) {
+      if (mounted) setState(() => _popularSearches = popular);
+    }).catchError((Object e, StackTrace st) {
+      Sentry.captureException(e, stackTrace: st);
     });
     if (widget.initialCategory != null) {
       _activeCategory = widget.initialCategory;
@@ -205,21 +224,31 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() => _loadingMore = true);
     }
     try {
+      final effectiveQuery = _effectiveQuery ?? _query;
       final page = await PropertyRepository.fetchPage(
         page: _page,
         pageSize: _pageSize,
-        query: _query,
+        query: effectiveQuery,
         category: _activeCategory,
         minPrice: _filters.priceRange.start,
         maxPrice: _filters.priceRange.end,
         minBeds: _filters.minBeds,
         location: _filters.location,
+        parking: _filters.parking ? true : null,
+        petFriendly: _filters.petFriendly ? true : null,
       );
       if (!mounted) return;
       if (reset && _query.trim().isNotEmpty) {
         AnalyticsRepository.track('search_performed', {
           'query': _query.trim(),
           'result_count': page.length,
+        });
+        SearchHistoryStore.add(_query.trim()).then((_) {
+          if (mounted) {
+            SearchHistoryStore.recent().then((recent) {
+              if (mounted) setState(() => _recentSearches = recent);
+            });
+          }
         });
       }
       setState(() {
@@ -256,10 +285,36 @@ class _SearchScreenState extends State<SearchScreen> {
       _nearMe = false;
     });
     _debounce?.cancel();
-    _debounce = Timer(
-      const Duration(milliseconds: 350),
-      () => _loadPage(reset: true),
-    );
+    _debounce = Timer(const Duration(milliseconds: 350), _applyQuery);
+  }
+
+  /// Runs the typed text through the natural-language parser: recognized
+  /// phrases (price ceiling, bed count, parking, pet-friendly) become real
+  /// filters — same as picking them from the filter sheet — and the
+  /// leftover words become the actual free-text query, instead of the
+  /// whole raw sentence (which would rarely match a listing verbatim).
+  void _applyQuery() {
+    final parsed = SearchQueryParser.parse(_query);
+    if (!parsed.isEmpty) {
+      setState(() {
+        _filters = _filters.copyWith(
+          priceRange: parsed.maxPrice != null
+              ? RangeValues(
+                  _filters.priceRange.start,
+                  parsed.maxPrice!.clamp(0, kFilterMaxPrice),
+                )
+              : null,
+          minBeds: parsed.minBeds,
+          parking: parsed.parking ? true : null,
+          petFriendly: parsed.petFriendly ? true : null,
+        );
+      });
+    }
+    setState(() {
+      _effectiveQuery = parsed.cleanedQuery;
+      _parsedMatches = parsed.matches;
+    });
+    _loadPage(reset: true);
   }
 
   void _onCategoryTap(String category) {
@@ -283,6 +338,108 @@ class _SearchScreenState extends State<SearchScreen> {
       });
       _loadPage(reset: true);
     }
+  }
+
+  // Only shown in the neutral entry state — as soon as the user types,
+  // picks a category, opens a filter, or searches nearby, the panel gives
+  // way to actual results instead of sitting above them.
+  bool get _showSuggestions =>
+      _query.isEmpty &&
+      _activeCategory == null &&
+      !_filters.isActive &&
+      !_nearMe;
+
+  static const _exampleQueries = [
+    'ຫ້ອງໃກ້ມະຫາວິທະຍາໄລ',
+    'ອາພາດເມັນຕ່ຳກວ່າ 2 ລ້ານກີບ',
+    'ມີບ່ອນຈອດລົດ',
+    'ຫ້ອງລ້ຽງສັດໄດ້',
+    'ໃກ້ໂຮງໝໍ',
+  ];
+
+  void _selectSuggestion(String query) {
+    _controller.text = query;
+    _debounce?.cancel();
+    setState(() {
+      _query = query;
+      _nearMe = false;
+    });
+    _applyQuery();
+  }
+
+  Widget _buildSuggestions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_recentSearches.isNotEmpty) ...[
+            _SuggestionLabel('ຄົ້ນຫາລ່າສຸດ'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final q in _recentSearches)
+                  _SuggestionChip(
+                    label: q,
+                    icon: Icons.history_rounded,
+                    onTap: () => _selectSuggestion(q),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
+          if (_popularSearches.isNotEmpty) ...[
+            _SuggestionLabel('ຄົ້ນຫາຍອດນິຍົມ'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (q, _) in _popularSearches)
+                  _SuggestionChip(
+                    label: q,
+                    icon: Icons.trending_up_rounded,
+                    onTap: () => _selectSuggestion(q),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
+          _SuggestionLabel('ທຳເລຍອດນິຍົມ'),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 56,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: trendingLocations.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, i) => LocationChip(
+                name: trendingLocations[i].$1,
+                imageUrl: trendingLocations[i].$2,
+                onTap: () => _selectSuggestion(trendingLocations[i].$1),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _SuggestionLabel('ລອງຄົ້ນຫາແບບນີ້'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final q in _exampleQueries)
+                _SuggestionChip(
+                  label: q,
+                  icon: Icons.auto_awesome_rounded,
+                  onTap: () => _selectSuggestion(q),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -354,6 +511,26 @@ class _SearchScreenState extends State<SearchScreen> {
                                 ),
                               ),
                             ),
+                          const SizedBox(width: 4),
+                          InkWell(
+                            onTap: () => ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'ຄົ້ນຫາດ້ວຍສຽງ — ເປີດໃຊ້ໄວໆນີ້',
+                                ),
+                              ),
+                            ),
+                            child: Tooltip(
+                              message: 'ຄົ້ນຫາດ້ວຍສຽງ',
+                              child: Icon(
+                                Icons.mic_none_rounded,
+                                size: 20,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -412,6 +589,61 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
+            if (_parsedMatches.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        'ເຂົ້າໃຈວ່າ:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    for (final match in _parsedMatches)
+                      Material(
+                        color: AppColors.secondaryGreen,
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _openFilters,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_rounded,
+                                  size: 12,
+                                  color: AppColors.primaryGreen,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  match,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             Stack(
               children: [
                 SizedBox(
@@ -614,6 +846,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ],
+            if (_showSuggestions) _buildSuggestions(),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -635,7 +868,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     const SizedBox(width: 10),
                     InkWell(
                       onTap: () {
-                        setState(() => _filters = const SearchFilters());
+                        setState(() {
+                          _filters = const SearchFilters();
+                          _parsedMatches = [];
+                        });
                         _loadPage(reset: true);
                       },
                       child: Text(
@@ -724,6 +960,66 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionLabel extends StatelessWidget {
+  const _SuggestionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
