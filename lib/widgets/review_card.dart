@@ -154,14 +154,25 @@ class ReviewCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            isHelpful
-                                ? Icons.thumb_up_rounded
-                                : Icons.thumb_up_outlined,
-                            size: 14,
-                            color: isHelpful
-                                ? AppColors.primaryGreen
-                                : AppColors.textSecondary,
+                          TweenAnimationBuilder<double>(
+                            key: ValueKey(isHelpful),
+                            tween: Tween(
+                              begin: isHelpful ? 1.5 : 1.0,
+                              end: 1.0,
+                            ),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutBack,
+                            builder: (context, scale, child) =>
+                                Transform.scale(scale: scale, child: child),
+                            child: Icon(
+                              isHelpful
+                                  ? Icons.thumb_up_rounded
+                                  : Icons.thumb_up_outlined,
+                              size: 14,
+                              color: isHelpful
+                                  ? AppColors.primaryGreen
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                           const SizedBox(width: 5),
                           Text(

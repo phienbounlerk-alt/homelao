@@ -44,13 +44,18 @@ class ReviewSummaryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    summary.avgOverall.toStringAsFixed(1),
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      height: 1,
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: summary.avgOverall),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) => Text(
+                      value.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        height: 1,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),

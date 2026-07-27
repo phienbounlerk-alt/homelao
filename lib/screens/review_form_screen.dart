@@ -413,12 +413,22 @@ class _RatingRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(
-                    filled ? Icons.star_rounded : Icons.star_border_rounded,
-                    size: 24,
-                    color: filled
-                        ? AppColors.success
-                        : AppColors.textSecondary,
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey(filled),
+                    tween: Tween(begin: filled ? 1.4 : 1.0, end: 1.0),
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutBack,
+                    builder: (context, scale, child) =>
+                        Transform.scale(scale: scale, child: child),
+                    child: Icon(
+                      filled
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      size: 24,
+                      color: filled
+                          ? AppColors.success
+                          : AppColors.textSecondary,
+                    ),
                   ),
                 ),
               );
