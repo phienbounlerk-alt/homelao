@@ -59,8 +59,9 @@ class StorageRepository {
   /// A short-lived signed URL for a private verification document — the
   /// bucket's RLS still gates who's allowed to mint one (the owning user
   /// or an admin), this just turns a stored path into something
-  /// displayable for those five minutes.
+  /// displayable for those fifteen minutes (long enough to fill out the
+  /// rest of a submission form without the preview going stale).
   static Future<String> signedVerificationDocUrl(String path) {
-    return _client.storage.from('verification-docs').createSignedUrl(path, 300);
+    return _client.storage.from('verification-docs').createSignedUrl(path, 900);
   }
 }

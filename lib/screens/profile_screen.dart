@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/admin_repository.dart';
 import '../data/driver_repository.dart';
 import '../data/favorites_store.dart';
+import '../data/owner_verification_repository.dart';
 import '../theme/app_theme.dart';
 import 'admin_screen.dart';
 import 'booking_history_screen.dart';
@@ -14,6 +15,7 @@ import 'help_center_screen.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
+import 'owner_verification_screen.dart';
 import 'payment_methods_screen.dart';
 import 'saved_properties_screen.dart';
 import 'settings_screen.dart';
@@ -35,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int? _bookingCount;
   bool _isAdmin = false;
   String? _driverStatus;
+  String? _verificationStatus;
 
   static const _baseMenuItems = [
     (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
@@ -51,6 +54,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     for (final item in _baseMenuItems) ...[
       if (item.$2 == 'ຕັ້ງຄ່າ') ...[
         if (_isAdmin) (Icons.admin_panel_settings_rounded, 'ຈັດການລະບົບ'),
+        switch (_verificationStatus) {
+          'approved' => (Icons.verified_rounded, 'ຢືນຢັນຕົວຕົນແລ້ວ'),
+          'pending' => (Icons.hourglass_top_rounded, 'ຢືນຢັນຕົວຕົນ (ລໍຖ້າກວດສອບ)'),
+          'rejected' ||
+          'more_docs_requested' => (
+            Icons.error_outline_rounded,
+            'ຢືນຢັນຕົວຕົນ (ຕ້ອງແກ້ໄຂ)',
+          ),
+          _ => (Icons.verified_outlined, 'ຢືນຢັນຕົວຕົນເຈົ້າຂອງ'),
+        },
         if (_driverStatus == 'approved')
           (Icons.local_shipping_rounded, 'ວຽກຂົນສົ່ງ')
         else
@@ -67,6 +80,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadStats();
     _checkAdmin();
     _checkDriver();
+    _checkVerification();
+  }
+
+  Future<void> _checkVerification() async {
+    try {
+      final verification = await OwnerVerificationRepository.fetchMine();
+      if (!mounted) return;
+      setState(() => _verificationStatus = verification?.status);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+    }
   }
 
   Future<void> _checkAdmin() async {
@@ -156,6 +180,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const DriverJobsScreen()));
+      return;
+    }
+    if (label == 'ຢືນຢັນຕົວຕົນເຈົ້າຂອງ' ||
+        label == 'ຢືນຢັນຕົວຕົນແລ້ວ' ||
+        label == 'ຢືນຢັນຕົວຕົນ (ລໍຖ້າກວດສອບ)' ||
+        label == 'ຢືນຢັນຕົວຕົນ (ຕ້ອງແກ້ໄຂ)') {
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => const OwnerVerificationScreen(),
+            ),
+          )
+          .then((_) {
+            if (mounted) _checkVerification();
+          });
       return;
     }
     if (label == 'ສະໝັກເປັນຄົນຂັບ') {
