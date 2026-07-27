@@ -8,6 +8,7 @@ import '../data/property_repository.dart';
 import '../data/storage_repository.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
+import '../widgets/location_picker_sheet.dart';
 
 class PostListingScreen extends StatefulWidget {
   const PostListingScreen({super.key, this.existing});
@@ -176,6 +177,19 @@ class _PostListingScreenState extends State<PostListingScreen> {
         const SnackBar(content: Text('ບັນທຶກຕຳແໜ່ງບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
       );
     }
+  }
+
+  Future<void> _pickOnMap() async {
+    final result = await showLocationPicker(
+      context,
+      initialLat: _lat,
+      initialLng: _lng,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _lat = result.$1;
+      _lng = result.$2;
+    });
   }
 
   Future<void> _submit() async {
@@ -409,35 +423,20 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             : null,
                       ),
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: _locating ? null : _useCurrentLocation,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
+                      if (_lat != null)
+                        Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              _locating
-                                  ? SizedBox(
-                                      width: 13,
-                                      height: 13,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                    )
-                                  : Icon(
-                                      _lat != null
-                                          ? Icons.check_circle_rounded
-                                          : Icons.my_location_rounded,
-                                      size: 15,
-                                      color: AppColors.primaryGreen,
-                                    ),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                size: 15,
+                                color: AppColors.primaryGreen,
+                              ),
                               const SizedBox(width: 6),
                               Text(
-                                _lat != null
-                                    ? 'ບັນທຶກຕຳແໜ່ງແລ້ວ — ຈະໂຊວ໌ໃນຄົ້ນຫາໃກ້ຂ້ອຍ'
-                                    : 'ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ (ບໍ່ບັງຄັບ)',
+                                'ບັນທຶກຕຳແໜ່ງແລ້ວ — ຈະໂຊວ໌ໃນຄົ້ນຫາໃກ້ຂ້ອຍ ແລະ ແຜນທີ່',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -446,7 +445,84 @@ class _PostListingScreenState extends State<PostListingScreen> {
                               ),
                             ],
                           ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            'ຕຳແໜ່ງເທິງແຜນທີ່ (ບໍ່ບັງຄັບ)',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                         ),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 4,
+                        children: [
+                          InkWell(
+                            onTap: _locating ? null : _useCurrentLocation,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _locating
+                                      ? SizedBox(
+                                          width: 13,
+                                          height: 13,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.primaryGreen,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.my_location_rounded,
+                                          size: 15,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: _pickOnMap,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.map_rounded,
+                                    size: 15,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'ປັກໝາຍເທິງແຜນທີ່',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Row(
