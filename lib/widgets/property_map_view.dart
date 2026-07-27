@@ -41,8 +41,10 @@ class PropertyMapView extends StatefulWidget {
   State<PropertyMapView> createState() => _PropertyMapViewState();
 }
 
-class _PropertyMapViewState extends State<PropertyMapView> {
+class _PropertyMapViewState extends State<PropertyMapView>
+    with SingleTickerProviderStateMixin {
   final _mapController = MapController();
+  late final AnimationController _flyController;
   Timer? _debounce;
 
   List<Property> _markers = [];
@@ -57,6 +59,15 @@ class _PropertyMapViewState extends State<PropertyMapView> {
   @override
   void initState() {
     super.initState();
+    // Created eagerly here (not via a `late final = ...` field initializer)
+    // — a lazy initializer would only run on first access, and if the user
+    // never taps "current location," that first access would happen inside
+    // dispose(), by which point the widget tree is deactivated and
+    // AnimationController's vsync lookup crashes.
+    _flyController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchForBounds(_mapController.camera.visibleBounds);
     });
@@ -78,7 +89,38 @@ class _PropertyMapViewState extends State<PropertyMapView> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _flyController.dispose();
     super.dispose();
+  }
+
+  /// Smoothly interpolates the camera to [dest] instead of jumping —
+  /// resolves once the animation finishes, so callers can safely fetch
+  /// against the map's final resting bounds right after awaiting it.
+  Future<void> _animatedMove(LatLng dest, double destZoom) async {
+    final camera = _mapController.camera;
+    final latTween = Tween<double>(
+      begin: camera.center.latitude,
+      end: dest.latitude,
+    );
+    final lngTween = Tween<double>(
+      begin: camera.center.longitude,
+      end: dest.longitude,
+    );
+    final zoomTween = Tween<double>(begin: camera.zoom, end: destZoom);
+    final animation = CurvedAnimation(
+      parent: _flyController,
+      curve: Curves.easeInOutCubic,
+    );
+    void listener() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    }
+
+    _flyController.addListener(listener);
+    await _flyController.forward(from: 0);
+    _flyController.removeListener(listener);
   }
 
   Future<void> _fetchForBounds(LatLngBounds bounds) async {
@@ -171,7 +213,8 @@ class _PropertyMapViewState extends State<PropertyMapView> {
     try {
       final (lat, lng) = await currentLatLng();
       if (!mounted) return;
-      _mapController.move(LatLng(lat, lng), 15);
+      await _animatedMove(LatLng(lat, lng), 15);
+      if (!mounted) return;
       setState(() => _locating = false);
       await _fetchForBounds(_mapController.camera.visibleBounds);
       if (_activePoi != null) await _fetchPois(_mapController.camera.visibleBounds);
@@ -233,9 +276,18 @@ class _PropertyMapViewState extends State<PropertyMapView> {
             onPositionChanged: _onPositionChanged,
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'la.homelao.app',
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: ThemeController.instance,
+              builder: (context, mode, _) {
+                final isDark = ThemeController.instance.isDark;
+                return TileLayer(
+                  urlTemplate: isDark
+                      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: isDark ? const ['a', 'b', 'c', 'd'] : const [],
+                  userAgentPackageName: 'la.homelao.app',
+                );
+              },
             ),
             MarkerClusterLayerWidget(
               options: MarkerClusterLayerOptions(
@@ -271,6 +323,27 @@ class _PropertyMapViewState extends State<PropertyMapView> {
               ],
             ),
           ],
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 2,
+          child: IgnorePointer(
+            child: Center(
+              child: ValueListenableBuilder<ThemeMode>(
+                valueListenable: ThemeController.instance,
+                builder: (context, mode, _) => Text(
+                  ThemeController.instance.isDark
+                      ? '© OpenStreetMap contributors © CARTO'
+                      : '© OpenStreetMap contributors',
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: AppColors.textSecondary.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         Positioned(
           left: 0,
@@ -488,26 +561,33 @@ class _PricePin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.primaryGreen : AppColors.surface,
-      borderRadius: BorderRadius.circular(18),
-      elevation: selected ? 4 : 2,
-      child: InkWell(
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) =>
+          Transform.scale(scale: t, child: Opacity(opacity: t.clamp(0, 1), child: child)),
+      child: Material(
+        color: selected ? AppColors.primaryGreen : AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.primaryGreen, width: 1.4),
-          ),
-          child: Text(
-            _compactPrice,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : AppColors.primaryGreen,
+        elevation: selected ? 4 : 2,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.primaryGreen, width: 1.4),
+            ),
+            child: Text(
+              _compactPrice,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : AppColors.primaryGreen,
+              ),
             ),
           ),
         ),
@@ -730,19 +810,25 @@ class _PoiMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: poi.name,
-      child: Container(
-        decoration: BoxDecoration(
-          color: poi.category.color,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
-          ],
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Transform.scale(scale: t, child: child),
+      child: Tooltip(
+        message: poi.name,
+        child: Container(
+          decoration: BoxDecoration(
+            color: poi.category.color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Icon(poi.category.icon, size: 14, color: Colors.white),
         ),
-        alignment: Alignment.center,
-        child: Icon(poi.category.icon, size: 14, color: Colors.white),
       ),
     );
   }
@@ -755,22 +841,28 @@ class _ClusterBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primaryGreen,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$count',
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Transform.scale(scale: t, child: child),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primaryGreen,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$count',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
     );
