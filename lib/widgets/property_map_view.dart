@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/geolocation.dart';
+import '../data/overpass_repository.dart';
 import '../data/property_repository.dart';
+import '../models/poi.dart';
 import '../models/property.dart';
 import '../screens/property_detail_screen.dart';
 import '../theme/app_theme.dart';
@@ -47,6 +49,10 @@ class _PropertyMapViewState extends State<PropertyMapView> {
   bool _loading = true;
   bool _locating = false;
   Property? _selected;
+
+  PoiCategory? _activePoi;
+  List<Poi> _pois = [];
+  bool _loadingPois = false;
 
   @override
   void initState() {
@@ -109,10 +115,55 @@ class _PropertyMapViewState extends State<PropertyMapView> {
     // leave it pointing at a marker the user can no longer see.
     if (_selected != null) setState(() => _selected = null);
     _debounce?.cancel();
-    _debounce = Timer(
-      const Duration(milliseconds: 600),
-      () => _fetchForBounds(camera.visibleBounds),
-    );
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _fetchForBounds(camera.visibleBounds);
+      if (_activePoi != null) _fetchPois(camera.visibleBounds);
+    });
+  }
+
+  Future<void> _fetchPois(LatLngBounds bounds) async {
+    final category = _activePoi;
+    if (category == null) return;
+    setState(() => _loadingPois = true);
+    try {
+      final results = await OverpassRepository.fetchNearby(
+        category: category,
+        bounds: bounds,
+      );
+      if (!mounted || _activePoi != category) return;
+      setState(() {
+        _pois = results;
+        _loadingPois = false;
+      });
+    } on OverpassAreaTooLarge {
+      if (!mounted) return;
+      setState(() => _loadingPois = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ກະລຸນາຊູມເຂົ້າໃກ້ຂຶ້ນເພື່ອຄົ້ນຫາສະຖານທີ່ໃກ້ຄຽງ')),
+      );
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _loadingPois = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ຄົ້ນຫາສະຖານທີ່ໃກ້ຄຽງບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  void _togglePoi(PoiCategory category) {
+    if (_activePoi == category) {
+      setState(() {
+        _activePoi = null;
+        _pois = [];
+      });
+      return;
+    }
+    setState(() {
+      _activePoi = category;
+      _pois = [];
+    });
+    _fetchPois(_mapController.camera.visibleBounds);
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -123,6 +174,7 @@ class _PropertyMapViewState extends State<PropertyMapView> {
       _mapController.move(LatLng(lat, lng), 15);
       setState(() => _locating = false);
       await _fetchForBounds(_mapController.camera.visibleBounds);
+      if (_activePoi != null) await _fetchPois(_mapController.camera.visibleBounds);
     } on GeolocationDenied {
       if (!mounted) return;
       setState(() => _locating = false);
@@ -207,16 +259,78 @@ class _PropertyMapViewState extends State<PropertyMapView> {
                 builder: (context, markers) => _ClusterBubble(count: markers.length),
               ),
             ),
+            MarkerLayer(
+              markers: [
+                for (final poi in _pois)
+                  Marker(
+                    point: LatLng(poi.lat, poi.lng),
+                    width: 30,
+                    height: 30,
+                    child: _PoiMarker(poi: poi),
+                  ),
+              ],
+            ),
           ],
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 12,
+          child: SizedBox(
+            height: 34,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              scrollDirection: Axis.horizontal,
+              itemCount: PoiCategory.values.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final category = PoiCategory.values[i];
+                final active = _activePoi == category;
+                return Material(
+                  color: active ? category.color : AppColors.surface,
+                  borderRadius: BorderRadius.circular(17),
+                  elevation: 2,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(17),
+                    onTap: () => _togglePoi(category),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            category.icon,
+                            size: 14,
+                            color: active ? Colors.white : category.color,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            category.label,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: active
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
         Positioned(
           left: 12,
           right: 12,
-          top: 12,
+          top: 54,
           child: IgnorePointer(
             ignoring: true,
             child: AnimatedOpacity(
-              opacity: _loading ? 1 : 0,
+              opacity: (_loading || _loadingPois) ? 1 : 0,
               duration: const Duration(milliseconds: 200),
               child: Center(
                 child: Container(
@@ -247,7 +361,9 @@ class _PropertyMapViewState extends State<PropertyMapView> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'ກຳລັງຄົ້ນຫາພື້ນທີ່ນີ້...',
+                        _loadingPois
+                            ? 'ກຳລັງຄົ້ນຫາສະຖານທີ່ໃກ້ຄຽງ...'
+                            : 'ກຳລັງຄົ້ນຫາພື້ນທີ່ນີ້...',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -602,6 +718,31 @@ class _PropertyPreviewCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PoiMarker extends StatelessWidget {
+  const _PoiMarker({required this.poi});
+
+  final Poi poi;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: poi.name,
+      child: Container(
+        decoration: BoxDecoration(
+          color: poi.category.color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Icon(poi.category.icon, size: 14, color: Colors.white),
       ),
     );
   }
