@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/geolocation.dart';
 import '../data/property_repository.dart';
 import '../models/property.dart';
@@ -45,6 +46,7 @@ class _PropertyMapViewState extends State<PropertyMapView> {
   List<Property> _markers = [];
   bool _loading = true;
   bool _locating = false;
+  Property? _selected;
 
   @override
   void initState() {
@@ -103,6 +105,9 @@ class _PropertyMapViewState extends State<PropertyMapView> {
 
   void _onPositionChanged(MapCamera camera, bool hasGesture) {
     if (!hasGesture) return;
+    // The selected pin may pan off-screen — drop the preview rather than
+    // leave it pointing at a marker the user can no longer see.
+    if (_selected != null) setState(() => _selected = null);
     _debounce?.cancel();
     _debounce = Timer(
       const Duration(milliseconds: 600),
@@ -145,6 +150,24 @@ class _PropertyMapViewState extends State<PropertyMapView> {
     ).push(MaterialPageRoute(builder: (_) => PropertyDetailScreen(property: property)));
   }
 
+  Future<void> _openDirections(Property property) async {
+    // A universal Google Maps deep link — resolves to whatever maps app the
+    // user already has, no API key or billing needed since this just opens
+    // a URL rather than calling any Maps API.
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${property.lat},${property.lng}',
+    );
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ເປີດແຜນທີ່ນຳທາງບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final center = widget.initialCenter ?? _defaultCenter;
@@ -176,7 +199,8 @@ class _PropertyMapViewState extends State<PropertyMapView> {
                       alignment: Alignment.center,
                       child: _PricePin(
                         property: property,
-                        onTap: () => _openProperty(property),
+                        selected: _selected?.id == property.id,
+                        onTap: () => setState(() => _selected = property),
                       ),
                     ),
                 ],
@@ -270,7 +294,7 @@ class _PropertyMapViewState extends State<PropertyMapView> {
             ),
           ),
         ),
-        if (!_loading)
+        if (!_loading && _selected == null)
           Positioned(
             left: 12,
             bottom: 24,
@@ -298,16 +322,43 @@ class _PropertyMapViewState extends State<PropertyMapView> {
               ),
             ),
           ),
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 12,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            transitionBuilder: (child, animation) => SlideTransition(
+              position: Tween(begin: const Offset(0, 0.3), end: Offset.zero)
+                  .animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: _selected == null
+                ? const SizedBox.shrink()
+                : _PropertyPreviewCard(
+                    key: ValueKey(_selected!.id),
+                    property: _selected!,
+                    onClose: () => setState(() => _selected = null),
+                    onViewDetails: () => _openProperty(_selected!),
+                    onDirections: () => _openDirections(_selected!),
+                  ),
+          ),
+        ),
       ],
     );
   }
 }
 
 class _PricePin extends StatelessWidget {
-  const _PricePin({required this.property, required this.onTap});
+  const _PricePin({
+    required this.property,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final Property property;
   final VoidCallback onTap;
+  final bool selected;
 
   String get _compactPrice {
     final price = property.priceLak;
@@ -322,13 +373,14 @@ class _PricePin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: selected ? AppColors.primaryGreen : AppColors.surface,
       borderRadius: BorderRadius.circular(18),
-      elevation: 2,
+      elevation: selected ? 4 : 2,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
@@ -339,8 +391,215 @@ class _PricePin extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.primaryGreen,
+              color: selected ? Colors.white : AppColors.primaryGreen,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PropertyPreviewCard extends StatelessWidget {
+  const _PropertyPreviewCard({
+    super.key,
+    required this.property,
+    required this.onClose,
+    required this.onViewDetails,
+    required this.onDirections,
+  });
+
+  final Property property;
+  final VoidCallback onClose;
+  final VoidCallback onViewDetails;
+  final VoidCallback onDirections;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 6,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onViewDetails,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      property.imageUrl,
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          width: 76,
+                          height: 76,
+                          color: AppColors.surfaceAlt,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${property.formattedPrice} ກີບ/ເດືອນ',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          property.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          property.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.bed_outlined,
+                              size: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${property.beds}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.bathtub_outlined,
+                              size: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${property.baths}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.star,
+                              size: 13,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${property.rating}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: onClose,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onDirections,
+                      icon: Icon(
+                        Icons.directions_rounded,
+                        size: 16,
+                        color: AppColors.primaryGreen,
+                      ),
+                      label: Text(
+                        'ນຳທາງ',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.primaryGreen),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onViewDetails,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'ລາຍລະອຽດ',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
