@@ -65,6 +65,64 @@ class PropertyRepository {
         .toList();
   }
 
+  /// Listings whose lat/lng fall inside a map viewport ("search this area"),
+  /// honoring the same filters as [fetchPage]. A bounding box is just a
+  /// range comparison — no RPC needed like [fetchNear]'s Haversine math —
+  /// and Postgres treats `NULL >= x` as false, so ungeotagged rows are
+  /// excluded automatically by the lat/lng comparisons below.
+  static Future<List<Property>> fetchInBounds({
+    required double swLat,
+    required double swLng,
+    required double neLat,
+    required double neLng,
+    String? query,
+    String? category,
+    double? minPrice,
+    double? maxPrice,
+    int? minBeds,
+    bool? parking,
+    bool? petFriendly,
+    int limit = 200,
+  }) async {
+    final trimmedQuery = query?.trim();
+    final trimmedCategory = category?.trim();
+
+    var builder = _client.from('properties').select();
+    if (trimmedQuery != null && trimmedQuery.isNotEmpty) {
+      final words = trimmedQuery
+          .split(RegExp(r'\s+'))
+          .map((w) => w.replaceAll(',', ' ').replaceAll('%', ' ').trim())
+          .where((w) => w.isNotEmpty);
+      final clauses = [
+        for (final w in words) ...[
+          'title.ilike.%$w%',
+          'location.ilike.%$w%',
+          'description.ilike.%$w%',
+        ],
+      ];
+      if (clauses.isNotEmpty) builder = builder.or(clauses.join(','));
+    }
+    if (trimmedCategory != null && trimmedCategory.isNotEmpty) {
+      builder = builder.ilike('title', '%$trimmedCategory%');
+    }
+    if (minPrice != null) builder = builder.gte('price_lak', minPrice);
+    if (maxPrice != null) builder = builder.lte('price_lak', maxPrice);
+    if (minBeds != null) builder = builder.gte('beds', minBeds);
+    if (parking == true) builder = builder.eq('parking', true);
+    if (petFriendly == true) builder = builder.eq('pet_friendly', true);
+
+    final rows = await builder
+        .gte('lat', swLat)
+        .lte('lat', neLat)
+        .gte('lng', swLng)
+        .lte('lng', neLng)
+        .order('featured', ascending: false)
+        .limit(limit);
+    return (rows as List)
+        .map((row) => Property.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Currently-boosted listings (paid, admin-confirmed, still within their
   /// window) for the Home screen's featured section.
   static Future<List<Property>> fetchFeatured({int limit = 8}) async {

@@ -26,6 +26,8 @@ class Property {
     this.photos = const [],
     this.parking = false,
     this.petFriendly = false,
+    this.lat,
+    this.lng,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -62,6 +64,8 @@ class Property {
       photos: (map['photos'] as List?)?.cast<String>() ?? const [],
       parking: map['parking'] as bool? ?? false,
       petFriendly: map['pet_friendly'] as bool? ?? false,
+      lat: (map['lat'] as num?)?.toDouble(),
+      lng: (map['lng'] as num?)?.toDouble(),
     );
   }
 
@@ -96,6 +100,13 @@ class Property {
   final bool parking;
   final bool petFriendly;
 
+  /// Map coordinates — null for listings posted before geotagging existed,
+  /// or where the owner skipped "use current location".
+  final double? lat;
+  final double? lng;
+
+  bool get hasCoordinates => lat != null && lng != null;
+
   /// Photos to actually render — never empty, even for old rows.
   List<String> get displayPhotos => photos.isNotEmpty ? photos : [imageUrl];
 
@@ -126,6 +137,8 @@ class Property {
     photos: photos,
     parking: parking,
     petFriendly: petFriendly,
+    lat: lat,
+    lng: lng,
   );
 
   /// Whether the paid featured-listing boost is still within its window —
