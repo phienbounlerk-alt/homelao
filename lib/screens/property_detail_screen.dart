@@ -327,24 +327,26 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                         color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.verified_rounded,
-                                          size: 13,
-                                          color: AppColors.primaryGreen,
-                                        ),
-                                        SizedBox(width: 3),
-                                        Text(
-                                          'ເຈົ້າຂອງຢືນຢັນແລ້ວ',
-                                          style: TextStyle(
-                                            fontSize: 11.5,
-                                            color: AppColors.textSecondary,
+                                    if (property.verified) ...[
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.verified_rounded,
+                                            size: 13,
+                                            color: AppColors.primaryGreen,
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                          SizedBox(width: 3),
+                                          Text(
+                                            'ເຈົ້າຂອງຢືນຢັນແລ້ວ',
+                                            style: TextStyle(
+                                              fontSize: 11.5,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

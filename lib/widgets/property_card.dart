@@ -273,24 +273,27 @@ class _PropertyCardState extends State<PropertyCard> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 12,
-                            color: AppColors.primaryGreen,
-                          ),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: Text(
-                              'ເຈົ້າຂອງຢືນຢັນແລ້ວ',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary,
+                          if (property.verified) ...[
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 12,
+                              color: AppColors.primaryGreen,
+                            ),
+                            const SizedBox(width: 2),
+                            Expanded(
+                              child: Text(
+                                'ເຈົ້າຂອງຢືນຢັນແລ້ວ',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ),
-                          ),
+                          ] else
+                            const Spacer(),
                           Icon(
                             Icons.visibility_outlined,
                             size: 12,

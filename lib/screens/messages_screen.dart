@@ -130,6 +130,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             c['landlord_avatar_url'] as String? ??
                             _defaultAvatarUrl;
                         final name = c['landlord_name'] as String;
+                        final verified =
+                            c['landlord_verified'] as bool? ?? false;
 
                         return Material(
                           color: Colors.transparent,
@@ -143,6 +145,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                         conversationId: c['id'] as String,
                                         name: name,
                                         avatarUrl: avatarUrl,
+                                        verified: verified,
                                         propertyTitle: propertyTitle,
                                         propertyImageUrl: propertyImageUrl,
                                         propertyPriceLak: propertyPriceLak,
@@ -168,15 +171,30 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.textPrimary,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                name,
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                            if (verified) ...[
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.verified_rounded,
+                                                size: 14,
+                                                color: AppColors.primaryGreen,
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                         if (propertyTitle != null) ...[
                                           const SizedBox(height: 3),
@@ -250,6 +268,7 @@ class ChatDetailScreen extends StatefulWidget {
     required this.conversationId,
     required this.name,
     required this.avatarUrl,
+    this.verified = false,
     this.propertyTitle,
     this.propertyImageUrl,
     this.propertyPriceLak,
@@ -258,6 +277,7 @@ class ChatDetailScreen extends StatefulWidget {
   final String conversationId;
   final String name;
   final String avatarUrl;
+  final bool verified;
 
   /// The listing this chat is about, if any.
   final String? propertyTitle;
@@ -388,14 +408,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     backgroundImage: NetworkImage(widget.avatarUrl),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    widget.name,
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                  Flexible(
+                    child: Text(
+                      widget.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
+                  if (widget.verified) ...[
+                    const SizedBox(width: 5),
+                    Icon(
+                      Icons.verified_rounded,
+                      size: 16,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ],
                 ],
               ),
             ),

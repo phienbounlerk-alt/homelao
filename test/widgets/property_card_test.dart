@@ -63,4 +63,33 @@ void main() {
       expect(find.text('ຢືນຢັນແລ້ວ'), findsNothing);
     });
   });
+
+  testWidgets(
+    'shows the owner-verified badge on the landlord row when verified',
+    (tester) async {
+      const verified = Property(
+        id: 'p3',
+        imageUrl: 'https://example.com/c.jpg',
+        priceLak: 900000,
+        title: 'ຫ້ອງເຊົ່າ',
+        location: 'ໄຊເສດຖາ',
+        beds: 1,
+        baths: 1,
+        areaSqm: 20,
+        rating: 4.0,
+        views: 10,
+        verified: true,
+      );
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: PropertyCard(property: verified)),
+          ),
+        );
+
+        expect(find.text('ເຈົ້າຂອງຢືນຢັນແລ້ວ'), findsOneWidget);
+      });
+    },
+  );
 }
