@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import '../data/analytics_repository.dart';
 import '../data/geolocation.dart';
@@ -14,6 +15,7 @@ import '../widgets/error_state.dart';
 import '../widgets/filter_sheet.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
+import '../widgets/property_map_view.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -73,6 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
   double _radiusKm = 15;
   double? _originLat;
   double? _originLng;
+  bool _mapMode = false;
 
   static const _radiusOptions = [5.0, 15.0, 30.0, 50.0, 100.0];
 
@@ -852,20 +855,21 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text(
-                    _loadingInitial
-                        ? 'ກຳລັງຄົ້ນຫາ...'
-                        : _nearMe
-                        ? 'ພົບ ${_results.length} ຊັບສິນໃກ້ທ່ານ (< ${_radiusKm.toInt()} km)'
-                        : 'ພົບ ${_results.length}${_hasMore ? '+' : ''} ຊັບສິນ',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                  Expanded(
+                    child: Text(
+                      _loadingInitial
+                          ? 'ກຳລັງຄົ້ນຫາ...'
+                          : _nearMe
+                          ? 'ພົບ ${_results.length} ຊັບສິນໃກ້ທ່ານ (< ${_radiusKm.toInt()} km)'
+                          : 'ພົບ ${_results.length}${_hasMore ? '+' : ''} ຊັບສິນ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                   if (_filters.isActive) ...[
-                    const SizedBox(width: 10),
                     InkWell(
                       onTap: () {
                         setState(() {
@@ -883,13 +887,33 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                   ],
+                  _MapListToggle(
+                    mapMode: _mapMode,
+                    onChanged: (value) => setState(() => _mapMode = value),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: _loadingInitial
+              child: _mapMode
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: PropertyMapView(
+                          filters: _filters,
+                          query: _effectiveQuery ?? _query,
+                          category: _activeCategory,
+                          initialCenter: _originLat != null && _originLng != null
+                              ? LatLng(_originLat!, _originLng!)
+                              : null,
+                        ),
+                      ),
+                    )
+                  : _loadingInitial
                   ? Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primaryGreen,
@@ -960,6 +984,71 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapListToggle extends StatelessWidget {
+  const _MapListToggle({required this.mapMode, required this.onChanged});
+
+  final bool mapMode;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleButton(
+            icon: Icons.view_list_rounded,
+            selected: !mapMode,
+            onTap: () => onChanged(false),
+          ),
+          _ToggleButton(
+            icon: Icons.map_rounded,
+            selected: mapMode,
+            onTap: () => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleButton extends StatelessWidget {
+  const _ToggleButton({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.primaryGreen : Colors.transparent,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            icon,
+            size: 17,
+            color: selected ? Colors.white : AppColors.textSecondary,
+          ),
         ),
       ),
     );
