@@ -37,6 +37,28 @@ class Review {
   final String reviewerName;
   final String? reviewerAvatarUrl;
 
+  Review copyWith({int? helpfulCount}) {
+    return Review(
+      id: id,
+      propertyId: propertyId,
+      userId: userId,
+      cleanliness: cleanliness,
+      locationRating: locationRating,
+      safety: safety,
+      internet: internet,
+      parking: parking,
+      value: value,
+      overall: overall,
+      comment: comment,
+      photos: photos,
+      helpfulCount: helpfulCount ?? this.helpfulCount,
+      hidden: hidden,
+      createdAt: createdAt,
+      reviewerName: reviewerName,
+      reviewerAvatarUrl: reviewerAvatarUrl,
+    );
+  }
+
   factory Review.fromMap(Map<String, dynamic> map) {
     final profile = map['profiles'] as Map<String, dynamic>?;
     final name = profile?['name'] as String?;

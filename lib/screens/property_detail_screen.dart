@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/analytics_repository.dart';
 import '../data/conversation_repository.dart';
 import '../data/favorites_store.dart';
@@ -532,6 +533,44 @@ const _sortLabels = {
   ReviewSort.mostHelpful: 'ເປັນປະໂຫຍດທີ່ສຸດ',
 };
 
+Future<String?> _promptForReportReason(BuildContext context) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text('ລາຍງານຣີວິວນີ້'),
+      content: TextField(
+        controller: controller,
+        maxLines: 3,
+        autofocus: true,
+        decoration: const InputDecoration(
+          hintText: 'ເຫດຜົນ ເຊັ່ນ: ຂໍ້ຄວາມບໍ່ເໝາະສົມ, ຣີວິວປອມ...',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'ຍົກເລີກ',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: Text(
+            'ລາຍງານ',
+            style: TextStyle(
+              color: const Color(0xFFDC2626),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Eligibility-aware entry point into the review flow (write / edit / not
 /// yet eligible), plus the public rating summary, sortable review list,
 /// and the cards themselves.
@@ -552,6 +591,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   ReviewSummary? _summary;
   List<Review>? _reviews;
   ReviewSort _sort = ReviewSort.latest;
+  Set<String> _helpfulVotedIds = {};
 
   @override
   void initState() {
@@ -587,9 +627,15 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         ReviewRepository.fetchForProperty(widget.property.id, sort: _sort),
       ]);
       if (!mounted) return;
+      final reviews = results[1] as List<Review>;
+      final voted = await ReviewRepository.fetchMyHelpfulVotes(
+        reviews.map((r) => r.id).toList(),
+      );
+      if (!mounted) return;
       setState(() {
         _summary = results[0] as ReviewSummary;
-        _reviews = results[1] as List<Review>;
+        _reviews = reviews;
+        _helpfulVotedIds = voted;
       });
     } catch (e, st) {
       Sentry.captureException(e, stackTrace: st);
@@ -602,6 +648,79 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     if (sort == _sort) return;
     setState(() => _sort = sort);
     _loadReviews();
+  }
+
+  Future<void> _toggleHelpful(Review review) async {
+    final currentlyHelpful = _helpfulVotedIds.contains(review.id);
+    final reviews = _reviews;
+    if (reviews == null) return;
+    final index = reviews.indexWhere((r) => r.id == review.id);
+    if (index == -1) return;
+
+    // Optimistic: flip the vote and count immediately, revert on failure.
+    setState(() {
+      if (currentlyHelpful) {
+        _helpfulVotedIds = {..._helpfulVotedIds}..remove(review.id);
+      } else {
+        _helpfulVotedIds = {..._helpfulVotedIds, review.id};
+      }
+      final updated = [...reviews];
+      updated[index] = review.copyWith(
+        helpfulCount: review.helpfulCount + (currentlyHelpful ? -1 : 1),
+      );
+      _reviews = updated;
+    });
+
+    try {
+      if (currentlyHelpful) {
+        await ReviewRepository.unmarkHelpful(review.id);
+      } else {
+        await ReviewRepository.markHelpful(review.id);
+      }
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        if (currentlyHelpful) {
+          _helpfulVotedIds = {..._helpfulVotedIds, review.id};
+        } else {
+          _helpfulVotedIds = {..._helpfulVotedIds}..remove(review.id);
+        }
+        final reverted = [...(_reviews ?? reviews)];
+        final revertIndex = reverted.indexWhere((r) => r.id == review.id);
+        if (revertIndex != -1) reverted[revertIndex] = review;
+        _reviews = reverted;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ດຳເນີນການບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  Future<void> _reportReview(Review review) async {
+    final reason = await _promptForReportReason(context);
+    if (reason == null) return;
+    try {
+      await ReviewRepository.report(review.id, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ລາຍງານແລ້ວ — ຂອບໃຈທີ່ແຈ້ງໃຫ້ຮູ້')),
+      );
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      final message = e.code == '23505'
+          ? 'ທ່ານໄດ້ລາຍງານຣີວິວນີ້ໄປແລ້ວ'
+          : 'ລາຍງານບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ລາຍງານບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   Future<void> _openForm() async {
@@ -758,7 +877,12 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                       padding: EdgeInsets.only(
                         bottom: i == reviews.length - 1 ? 0 : 12,
                       ),
-                      child: ReviewCard(review: reviews[i]),
+                      child: ReviewCard(
+                        review: reviews[i],
+                        isHelpful: _helpfulVotedIds.contains(reviews[i].id),
+                        onToggleHelpful: () => _toggleHelpful(reviews[i]),
+                        onReport: () => _reportReview(reviews[i]),
+                      ),
                     ),
                 ],
               ),

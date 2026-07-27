@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/admin_repository.dart';
 import '../data/analytics_repository.dart';
 import '../data/owner_verification_repository.dart';
+import '../data/review_repository.dart';
 import '../data/storage_repository.dart';
 import '../models/driver.dart';
 import '../models/featured_request.dart';
@@ -33,7 +34,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabController = TabController(length: 5, vsync: this);
+  late final _tabController = TabController(length: 6, vsync: this);
 
   @override
   void dispose() {
@@ -100,6 +101,7 @@ class _AdminScreenState extends State<AdminScreen>
                 Tab(text: 'ຄຳຮ້ອງເດັ່ນ'),
                 Tab(text: 'ຄົນຂັບ'),
                 Tab(text: 'ຢືນຢັນຕົວຕົນ'),
+                Tab(text: 'ຣີວິວທີ່ຖືກລາຍງານ'),
                 Tab(text: 'ສະຖິຕິ'),
               ],
             ),
@@ -111,6 +113,7 @@ class _AdminScreenState extends State<AdminScreen>
                   _FeatureRequestsTab(),
                   _PendingDriversTab(),
                   _PendingVerificationsTab(),
+                  _ReportedReviewsTab(),
                   _AnalyticsTab(),
                 ],
               ),
@@ -670,6 +673,263 @@ class _PendingVerificationsTabState extends State<_PendingVerificationsTab> {
           onRequestMoreDocs: () => _requestMoreDocs(verification),
         );
       },
+    );
+  }
+}
+
+class _ReportedReviewsTab extends StatefulWidget {
+  const _ReportedReviewsTab();
+
+  @override
+  State<_ReportedReviewsTab> createState() => _ReportedReviewsTabState();
+}
+
+class _ReportedReviewsTabState extends State<_ReportedReviewsTab> {
+  List<Map<String, dynamic>> _reported = [];
+  bool _loading = true;
+  bool _error = false;
+  final Set<String> _busyIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final reported = await ReviewRepository.fetchReportedReviews();
+      if (!mounted) return;
+      setState(() {
+        _reported = reported;
+        _loading = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _decide(String reviewId, bool hide) async {
+    setState(() => _busyIds.add(reviewId));
+    try {
+      await ReviewRepository.setHidden(reviewId, hide);
+      if (!mounted) return;
+      setState(() {
+        _reported.removeWhere((r) => r['review_id'] == reviewId);
+        _busyIds.remove(reviewId);
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(reviewId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ດຳເນີນການບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (_error) return ErrorState(onRetry: _load);
+    if (_reported.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.task_alt_rounded,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'ບໍ່ມີຣີວິວທີ່ຖືກລາຍງານ',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      itemCount: _reported.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, i) {
+        final row = _reported[i];
+        final reviewId = row['review_id'] as String;
+        final busy = _busyIds.contains(reviewId);
+        return _ReportedReviewCard(
+          row: row,
+          busy: busy,
+          onHide: () => _decide(reviewId, true),
+          onKeep: () => _decide(reviewId, false),
+        );
+      },
+    );
+  }
+}
+
+class _ReportedReviewCard extends StatelessWidget {
+  const _ReportedReviewCard({
+    required this.row,
+    required this.busy,
+    required this.onHide,
+    required this.onKeep,
+  });
+
+  final Map<String, dynamic> row;
+  final bool busy;
+  final VoidCallback onHide;
+  final VoidCallback onKeep;
+
+  @override
+  Widget build(BuildContext context) {
+    final hidden = row['hidden'] as bool? ?? false;
+    final reportCount = (row['report_count'] as num?)?.toInt() ?? 0;
+    final overall = (row['overall'] as num?)?.toDouble() ?? 0;
+    final propertyTitle = row['property_title'] as String? ?? 'ຊັບສິນ';
+    final comment = row['comment'] as String? ?? '';
+    final reason = row['latest_report_reason'] as String?;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  propertyTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Icon(Icons.star_rounded, size: 14, color: AppColors.success),
+              const SizedBox(width: 2),
+              Text(
+                overall.toStringAsFixed(1),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              comment,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12.5, color: AppColors.textPrimary),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.flag_rounded,
+                  size: 14,
+                  color: const Color(0xFFDC2626),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    reason?.isNotEmpty == true
+                        ? '$reportCount ລາຍງານ — "$reason"'
+                        : '$reportCount ລາຍງານ',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hidden) ...[
+            const SizedBox(height: 8),
+            Text(
+              'ຖືກເຊື່ອງໄວ້ແລ້ວ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          if (busy)
+            Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: hidden ? 'ຍົກເລີກການເຊື່ອງ' : 'ຮັກສາໄວ້',
+                    color: AppColors.primaryGreen,
+                    onTap: onKeep,
+                  ),
+                ),
+                if (!hidden) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ActionButton(
+                      label: 'ເຊື່ອງຣີວິວ',
+                      color: const Color(0xFFDC2626),
+                      onTap: onHide,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

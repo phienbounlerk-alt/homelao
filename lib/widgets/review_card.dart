@@ -5,13 +5,21 @@ import '../theme/app_theme.dart';
 const _defaultAvatarUrl =
     'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80';
 
-/// A single review — reviewer, star breakdown, comment, and photos.
-/// Helpful-vote and report actions are wired up in a later batch; this
-/// renders the helpful count read-only for now.
+/// A single review — reviewer, star breakdown, comment, photos, a
+/// toggleable helpful vote, and a report action.
 class ReviewCard extends StatelessWidget {
-  const ReviewCard({super.key, required this.review});
+  const ReviewCard({
+    super.key,
+    required this.review,
+    required this.isHelpful,
+    required this.onToggleHelpful,
+    required this.onReport,
+  });
 
   final Review review;
+  final bool isHelpful;
+  final VoidCallback onToggleHelpful;
+  final VoidCallback onReport;
 
   static const _months = [
     'ມັງກອນ', 'ກຸມພາ', 'ມີນາ', 'ເມສາ', 'ພຶດສະພາ', 'ມິຖຸນາ',
@@ -130,17 +138,60 @@ class ReviewCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(
-                  Icons.thumb_up_outlined,
-                  size: 14,
-                  color: AppColors.textSecondary,
+                Material(
+                  color: isHelpful
+                      ? AppColors.secondaryGreen
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: onToggleHelpful,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isHelpful
+                                ? Icons.thumb_up_rounded
+                                : Icons.thumb_up_outlined,
+                            size: 14,
+                            color: isHelpful
+                                ? AppColors.primaryGreen
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'ເປັນປະໂຫຍດ (${review.helpfulCount})',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: isHelpful
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: isHelpful
+                                  ? AppColors.primaryGreen
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  'ເປັນປະໂຫຍດ (${review.helpfulCount})',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.textSecondary,
+                const Spacer(),
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: onReport,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.flag_outlined,
+                      size: 15,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

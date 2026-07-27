@@ -140,6 +140,24 @@ class ReviewRepository {
     return row != null;
   }
 
+  /// Which of [reviewIds] the current user has already marked helpful —
+  /// one query for the whole list a screen is displaying, rather than a
+  /// round trip per review card.
+  static Future<Set<String>> fetchMyHelpfulVotes(
+    List<String> reviewIds,
+  ) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || reviewIds.isEmpty) return {};
+    final rows = await _client
+        .from('review_helpful_votes')
+        .select('review_id')
+        .eq('user_id', userId)
+        .inFilter('review_id', reviewIds);
+    return (rows as List)
+        .map((row) => (row as Map<String, dynamic>)['review_id'] as String)
+        .toSet();
+  }
+
   static Future<void> markHelpful(String reviewId) async {
     final userId = _client.auth.currentUser!.id;
     await _client.from('review_helpful_votes').insert({
