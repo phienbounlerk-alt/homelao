@@ -4,11 +4,14 @@ import '../data/analytics_repository.dart';
 import '../data/conversation_repository.dart';
 import '../data/favorites_store.dart';
 import '../data/property_repository.dart';
+import '../data/review_repository.dart';
 import '../models/property.dart';
+import '../models/review.dart';
 import '../theme/app_theme.dart';
 import '../widgets/booking_sheet.dart';
 import '../widgets/property_card.dart';
 import 'messages_screen.dart';
+import 'review_form_screen.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   const PropertyDetailScreen({super.key, required this.property});
@@ -353,6 +356,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             ],
                           ),
                         ),
+                        _ReviewsSection(property: property),
                         _SimilarPropertiesSection(property: property),
                       ],
                     ),
@@ -513,6 +517,169 @@ class _SimilarPropertiesSectionState
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Eligibility-aware entry point into the review flow: still checking,
+/// already reviewed (edit), booked a viewing (write), or not yet eligible.
+/// The actual review list and rating summary are built out in the next
+/// batch — this batch is just the write/edit gate.
+class _ReviewsSection extends StatefulWidget {
+  const _ReviewsSection({required this.property});
+
+  final Property property;
+
+  @override
+  State<_ReviewsSection> createState() => _ReviewsSectionState();
+}
+
+class _ReviewsSectionState extends State<_ReviewsSection> {
+  Review? _myReview;
+  bool _canReview = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        ReviewRepository.fetchMyReview(widget.property.id),
+        ReviewRepository.hasBookedProperty(widget.property.id),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _myReview = results[0] as Review?;
+        _canReview = results[1] as bool;
+        _loading = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openForm() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ReviewFormScreen(
+          property: widget.property,
+          existing: _myReview,
+        ),
+      ),
+    );
+    if (saved == true) _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ຣີວິວ',
+            style: TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (_loading)
+            const SizedBox.shrink()
+          else if (_myReview != null)
+            _ReviewCtaButton(
+              icon: Icons.edit_rounded,
+              label: 'ແກ້ໄຂຣີວິວຂອງທ່ານ',
+              onTap: _openForm,
+            )
+          else if (_canReview)
+            _ReviewCtaButton(
+              icon: Icons.star_rounded,
+              label: 'ຂຽນຣີວິວ',
+              onTap: _openForm,
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'ນັດເບິ່ງຫ້ອງກ່ອນຈຶ່ງຈະຂຽນຣີວິວໄດ້',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewCtaButton extends StatelessWidget {
+  const _ReviewCtaButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.secondaryGreen,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 17, color: AppColors.accent),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
