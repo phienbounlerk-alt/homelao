@@ -3,8 +3,11 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/admin_repository.dart';
 import '../data/analytics_repository.dart';
+import '../data/owner_verification_repository.dart';
+import '../data/storage_repository.dart';
 import '../models/driver.dart';
 import '../models/featured_request.dart';
+import '../models/owner_verification.dart';
 import '../models/property.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
@@ -30,7 +33,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen>
     with SingleTickerProviderStateMixin {
-  late final _tabController = TabController(length: 4, vsync: this);
+  late final _tabController = TabController(length: 5, vsync: this);
 
   @override
   void dispose() {
@@ -96,6 +99,7 @@ class _AdminScreenState extends State<AdminScreen>
                 Tab(text: 'ປະກາດລໍຖ້າອະນຸມັດ'),
                 Tab(text: 'ຄຳຮ້ອງເດັ່ນ'),
                 Tab(text: 'ຄົນຂັບ'),
+                Tab(text: 'ຢືນຢັນຕົວຕົນ'),
                 Tab(text: 'ສະຖິຕິ'),
               ],
             ),
@@ -106,6 +110,7 @@ class _AdminScreenState extends State<AdminScreen>
                   _PendingPropertiesTab(),
                   _FeatureRequestsTab(),
                   _PendingDriversTab(),
+                  _PendingVerificationsTab(),
                   _AnalyticsTab(),
                 ],
               ),
@@ -441,6 +446,228 @@ class _PendingDriversTabState extends State<_PendingDriversTab> {
           busy: busy,
           onApprove: () => _decide(driver, 'approved'),
           onReject: () => _decide(driver, 'rejected'),
+        );
+      },
+    );
+  }
+}
+
+Future<String?> _promptForNotes(BuildContext context, String title) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        maxLines: 3,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'ອະທິບາຍເຫດຜົນ...'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'ຍົກເລີກ',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: Text(
+            'ຢືນຢັນ',
+            style: TextStyle(
+              color: AppColors.primaryGreen,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _viewDocument(BuildContext context, String? url) {
+  if (url == null) return;
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.black,
+      insetPadding: const EdgeInsets.all(12),
+      child: Stack(
+        children: [
+          InteractiveViewer(
+            child: Image.network(url, fit: BoxFit.contain),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _PendingVerificationsTab extends StatefulWidget {
+  const _PendingVerificationsTab();
+
+  @override
+  State<_PendingVerificationsTab> createState() =>
+      _PendingVerificationsTabState();
+}
+
+class _PendingVerificationsTabState extends State<_PendingVerificationsTab> {
+  List<OwnerVerification> _pending = [];
+  // verification.id -> {'id': signedUrl, 'selfie': signedUrl, 'ownership': signedUrl}
+  final Map<String, Map<String, String>> _docUrls = {};
+  bool _loading = true;
+  bool _error = false;
+  final Set<String> _busyIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = false;
+    });
+    try {
+      final pending = await OwnerVerificationRepository.fetchPending();
+      final urlEntries = await Future.wait(
+        pending.map((v) async {
+          final urls = <String, String>{};
+          if (v.idDocumentUrl != null) {
+            urls['id'] = await StorageRepository.signedVerificationDocUrl(
+              v.idDocumentUrl!,
+            );
+          }
+          if (v.selfieUrl != null) {
+            urls['selfie'] = await StorageRepository.signedVerificationDocUrl(
+              v.selfieUrl!,
+            );
+          }
+          if (v.ownershipDocumentUrl != null) {
+            urls['ownership'] =
+                await StorageRepository.signedVerificationDocUrl(
+                  v.ownershipDocumentUrl!,
+                );
+          }
+          return MapEntry(v.id, urls);
+        }),
+      );
+      if (!mounted) return;
+      setState(() {
+        _pending = pending;
+        _docUrls
+          ..clear()
+          ..addEntries(urlEntries);
+        _loading = false;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _decide(
+    OwnerVerification verification,
+    String status, {
+    String? notes,
+  }) async {
+    setState(() => _busyIds.add(verification.id));
+    try {
+      await OwnerVerificationRepository.review(
+        verification: verification,
+        status: status,
+        adminNotes: notes,
+      );
+      if (!mounted) return;
+      setState(() {
+        _pending.removeWhere((v) => v.id == verification.id);
+        _busyIds.remove(verification.id);
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _busyIds.remove(verification.id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ດຳເນີນການບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  Future<void> _reject(OwnerVerification verification) async {
+    final notes = await _promptForNotes(context, 'ເຫດຜົນການປະຕິເສດ');
+    if (notes == null) return;
+    await _decide(verification, 'rejected', notes: notes);
+  }
+
+  Future<void> _requestMoreDocs(OwnerVerification verification) async {
+    final notes = await _promptForNotes(context, 'ເອກະສານທີ່ຕ້ອງການເພີ່ມ');
+    if (notes == null) return;
+    await _decide(verification, 'more_docs_requested', notes: notes);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      );
+    }
+    if (_error) return ErrorState(onRetry: _load);
+    if (_pending.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.task_alt_rounded,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'ບໍ່ມີຄຳຮ້ອງຢືນຢັນຕົວຕົນລໍຖ້າກວດສອບ',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      itemCount: _pending.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, i) {
+        final verification = _pending[i];
+        final busy = _busyIds.contains(verification.id);
+        return _VerificationCard(
+          verification: verification,
+          docUrls: _docUrls[verification.id] ?? const {},
+          busy: busy,
+          onViewDocument: (url) => _viewDocument(context, url),
+          onApprove: () => _decide(verification, 'approved'),
+          onReject: () => _reject(verification),
+          onRequestMoreDocs: () => _requestMoreDocs(verification),
         );
       },
     );
@@ -1140,6 +1367,176 @@ class _DriverCard extends StatelessWidget {
                 ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerificationCard extends StatelessWidget {
+  const _VerificationCard({
+    required this.verification,
+    required this.docUrls,
+    required this.busy,
+    required this.onViewDocument,
+    required this.onApprove,
+    required this.onReject,
+    required this.onRequestMoreDocs,
+  });
+
+  final OwnerVerification verification;
+  final Map<String, String> docUrls;
+  final bool busy;
+  final ValueChanged<String?> onViewDocument;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+  final VoidCallback onRequestMoreDocs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _DocThumb(
+                label: 'ບັດປະຈຳຕົວ',
+                url: docUrls['id'],
+                onTap: () => onViewDocument(docUrls['id']),
+              ),
+              const SizedBox(width: 10),
+              _DocThumb(
+                label: 'Selfie',
+                url: docUrls['selfie'],
+                onTap: () => onViewDocument(docUrls['selfie']),
+              ),
+              const SizedBox(width: 10),
+              _DocThumb(
+                label: 'ກຳມະສິດ',
+                url: docUrls['ownership'],
+                onTap: () => onViewDocument(docUrls['ownership']),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (verification.phoneNumber != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.call_rounded,
+                    size: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    verification.phoneNumber!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Text(
+            'ສົ່ງເມື່ອ ${verification.createdAt.day}/${verification.createdAt.month}/${verification.createdAt.year}',
+            style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          if (busy)
+            Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            )
+          else ...[
+            SizedBox(
+              width: double.infinity,
+              child: _ActionButton(
+                label: 'ຂໍເອກະສານເພີ່ມ',
+                color: const Color(0xFFD97706),
+                onTap: onRequestMoreDocs,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    label: 'ປະຕິເສດ',
+                    color: const Color(0xFFDC2626),
+                    onTap: onReject,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ActionButton(
+                    label: 'ອະນຸມັດ',
+                    color: AppColors.primaryGreen,
+                    onTap: onApprove,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DocThumb extends StatelessWidget {
+  const _DocThumb({required this.label, required this.url, required this.onTap});
+
+  final String label;
+  final String? url;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Material(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: url == null ? null : onTap,
+              child: SizedBox(
+                height: 64,
+                width: double.infinity,
+                child: url == null
+                    ? Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      )
+                    : Image.network(url!, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
