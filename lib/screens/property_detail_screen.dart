@@ -7,9 +7,12 @@ import '../data/property_repository.dart';
 import '../data/review_repository.dart';
 import '../models/property.dart';
 import '../models/review.dart';
+import '../models/review_summary.dart';
 import '../theme/app_theme.dart';
 import '../widgets/booking_sheet.dart';
 import '../widgets/property_card.dart';
+import '../widgets/review_card.dart';
+import '../widgets/review_summary_card.dart';
 import 'messages_screen.dart';
 import 'review_form_screen.dart';
 
@@ -522,10 +525,16 @@ class _SimilarPropertiesSectionState
   }
 }
 
-/// Eligibility-aware entry point into the review flow: still checking,
-/// already reviewed (edit), booked a viewing (write), or not yet eligible.
-/// The actual review list and rating summary are built out in the next
-/// batch — this batch is just the write/edit gate.
+const _sortLabels = {
+  ReviewSort.latest: 'ຫຼ້າສຸດ',
+  ReviewSort.highest: 'ຄະແນນສູງສຸດ',
+  ReviewSort.lowest: 'ຄະແນນຕ່ຳສຸດ',
+  ReviewSort.mostHelpful: 'ເປັນປະໂຫຍດທີ່ສຸດ',
+};
+
+/// Eligibility-aware entry point into the review flow (write / edit / not
+/// yet eligible), plus the public rating summary, sortable review list,
+/// and the cards themselves.
 class _ReviewsSection extends StatefulWidget {
   const _ReviewsSection({required this.property});
 
@@ -540,10 +549,15 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   bool _canReview = false;
   bool _loading = true;
 
+  ReviewSummary? _summary;
+  List<Review>? _reviews;
+  ReviewSort _sort = ReviewSort.latest;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadReviews();
   }
 
   Future<void> _load() async {
@@ -566,6 +580,30 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     }
   }
 
+  Future<void> _loadReviews() async {
+    try {
+      final results = await Future.wait([
+        ReviewRepository.fetchSummary(widget.property.id),
+        ReviewRepository.fetchForProperty(widget.property.id, sort: _sort),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _summary = results[0] as ReviewSummary;
+        _reviews = results[1] as List<Review>;
+      });
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _reviews = const []);
+    }
+  }
+
+  void _changeSort(ReviewSort sort) {
+    if (sort == _sort) return;
+    setState(() => _sort = sort);
+    _loadReviews();
+  }
+
   Future<void> _openForm() async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -575,11 +613,16 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         ),
       ),
     );
-    if (saved == true) _load();
+    if (saved == true) {
+      _load();
+      _loadReviews();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final summary = _summary;
+    final reviews = _reviews;
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Column(
@@ -635,6 +678,91 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 ],
               ),
             ),
+          if (summary != null && summary.reviewCount > 0) ...[
+            const SizedBox(height: 16),
+            ReviewSummaryCard(summary: summary),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${summary.reviewCount} ຣີວິວ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                PopupMenuButton<ReviewSort>(
+                  initialValue: _sort,
+                  onSelected: _changeSort,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  itemBuilder: (context) => [
+                    for (final entry in _sortLabels.entries)
+                      PopupMenuItem(
+                        value: entry.key,
+                        child: Text(
+                          entry.value,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: entry.key == _sort
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: entry.key == _sort
+                                ? AppColors.primaryGreen
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.sort_rounded,
+                          size: 15,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _sortLabels[_sort]!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (reviews != null)
+              Column(
+                children: [
+                  for (var i = 0; i < reviews.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: i == reviews.length - 1 ? 0 : 12,
+                      ),
+                      child: ReviewCard(review: reviews[i]),
+                    ),
+                ],
+              ),
+          ],
         ],
       ),
     );
