@@ -20,6 +20,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   bool _loading = true;
   bool _error = false;
 
+  /// Property ids with a rent-toggle or renew request in flight — guards
+  /// against a rapid double-tap firing two overlapping requests for the
+  /// same row (whichever response lands last would otherwise win).
+  final Set<String> _pendingActions = {};
+
   @override
   void initState() {
     super.initState();
@@ -92,8 +97,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
 
   Future<void> _toggleRented(Property property, bool value) async {
     final i = _properties.indexWhere((p) => p.id == property.id);
-    if (i == -1) return;
-    setState(() => _properties[i] = property.withRented(value));
+    if (i == -1 || _pendingActions.contains(property.id)) return;
+    setState(() {
+      _pendingActions.add(property.id);
+      _properties[i] = property.withRented(value);
+    });
     try {
       await PropertyRepository.setRented(property.id, value);
     } catch (e, st) {
@@ -103,12 +111,15 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ອັບເດດສະຖານະບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
       );
+    } finally {
+      if (mounted) setState(() => _pendingActions.remove(property.id));
     }
   }
 
   Future<void> _renew(Property property) async {
     final i = _properties.indexWhere((p) => p.id == property.id);
-    if (i == -1) return;
+    if (i == -1 || _pendingActions.contains(property.id)) return;
+    setState(() => _pendingActions.add(property.id));
     try {
       final newExpiry = await PropertyRepository.renew(property.id);
       if (!mounted) return;
@@ -122,6 +133,8 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ຕໍ່ອາຍຸບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
       );
+    } finally {
+      if (mounted) setState(() => _pendingActions.remove(property.id));
     }
   }
 
@@ -323,8 +336,13 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                     ),
                                     Switch(
                                       value: property.isRented,
-                                      onChanged: (v) =>
-                                          _toggleRented(property, v),
+                                      onChanged:
+                                          _pendingActions.contains(
+                                            property.id,
+                                          )
+                                          ? null
+                                          : (v) =>
+                                                _toggleRented(property, v),
                                       activeThumbColor: AppColors.primaryGreen,
                                     ),
                                     const Spacer(),
@@ -333,7 +351,12 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                         expiresAt: property.expiresAt!,
                                       ),
                                     TextButton(
-                                      onPressed: () => _renew(property),
+                                      onPressed:
+                                          _pendingActions.contains(
+                                            property.id,
+                                          )
+                                          ? null
+                                          : () => _renew(property),
                                       child: Text(
                                         'ຕໍ່ອາຍຸ',
                                         style: TextStyle(
