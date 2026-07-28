@@ -68,6 +68,20 @@ class ConversationRepository {
     return conversations;
   }
 
+  /// Conversations about the current owner's own listings, most recent
+  /// activity first — the symmetric owner-side counterpart to
+  /// [fetchConversations].
+  static Future<List<Map<String, dynamic>>> fetchOwnerConversations() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final rows = await _client.rpc('owner_conversations_with_latest_message');
+    final conversations = (rows as List).cast<Map<String, dynamic>>();
+    conversations.sort(
+      (a, b) => _latestActivity(b).compareTo(_latestActivity(a)),
+    );
+    return conversations;
+  }
+
   static DateTime _latestActivity(Map<String, dynamic> conversation) {
     final createdAt = DateTime.parse(conversation['created_at'] as String);
     final latestMessageAt = conversation['latest_message_created_at'] as String?;

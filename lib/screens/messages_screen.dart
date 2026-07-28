@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/conversation_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
@@ -307,13 +308,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _loading = true;
       _error = false;
     });
+    final myId = Supabase.instance.client.auth.currentUser?.id;
     _sub?.cancel();
     _sub = ConversationRepository.streamMessages(widget.conversationId).listen(
       (rows) {
         if (!mounted) return;
         setState(() {
           _messages = rows
-              .map((r) => _Bubble(r['text'] as String, r['from_me'] as bool))
+              .map(
+                (r) => _Bubble(r['text'] as String, r['sender_id'] == myId),
+              )
               .toList();
           _loading = false;
         });

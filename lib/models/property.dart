@@ -162,6 +162,69 @@ class Property {
     expiresAt: expiresAt,
   );
 
+  /// Local-state update after [PropertyRepository.setRented] — lets My
+  /// Listings reflect a toggle immediately without a full refetch.
+  Property withRented(bool value) => Property(
+    id: id,
+    imageUrl: imageUrl,
+    priceLak: priceLak,
+    title: title,
+    location: location,
+    beds: beds,
+    baths: baths,
+    areaSqm: areaSqm,
+    rating: rating,
+    views: views,
+    verified: verified,
+    landlordAvatarUrl: landlordAvatarUrl,
+    landlordName: landlordName,
+    description: description,
+    status: status,
+    featured: featured,
+    featuredUntil: featuredUntil,
+    ownerId: ownerId,
+    distanceKm: distanceKm,
+    photos: photos,
+    parking: parking,
+    petFriendly: petFriendly,
+    lat: lat,
+    lng: lng,
+    isRented: value,
+    phoneNumber: phoneNumber,
+    expiresAt: expiresAt,
+  );
+
+  /// Local-state update after [PropertyRepository.renew].
+  Property withExpiry(DateTime value) => Property(
+    id: id,
+    imageUrl: imageUrl,
+    priceLak: priceLak,
+    title: title,
+    location: location,
+    beds: beds,
+    baths: baths,
+    areaSqm: areaSqm,
+    rating: rating,
+    views: views,
+    verified: verified,
+    landlordAvatarUrl: landlordAvatarUrl,
+    landlordName: landlordName,
+    description: description,
+    status: status,
+    featured: featured,
+    featuredUntil: featuredUntil,
+    ownerId: ownerId,
+    distanceKm: distanceKm,
+    photos: photos,
+    parking: parking,
+    petFriendly: petFriendly,
+    lat: lat,
+    lng: lng,
+    isRented: isRented,
+    phoneNumber: phoneNumber,
+    expiresAt: value,
+  );
+
   /// Whether the paid featured-listing boost is still within its window —
   /// checked against [featuredUntil] rather than trusting [featured] alone,
   /// since nothing clears that flag once the period lapses.

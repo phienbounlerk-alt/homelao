@@ -1,6 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/daily_event.dart';
+import '../models/owner_booking.dart';
 import '../models/owner_dashboard_summary.dart';
+import '../models/review.dart';
+import 'property_repository.dart';
 
 enum ChartPeriod { daily, weekly, monthly, yearly }
 
@@ -64,5 +67,66 @@ class OwnerDashboardRepository {
     }).toList();
     resampled.sort((a, b) => b.day.compareTo(a.day));
     return resampled;
+  }
+
+  /// Bookings made on any of the current owner's listings, newest first.
+  /// bookings.user_id references auth.users (not profiles), so renter
+  /// name/avatar are fetched separately and stitched in client-side rather
+  /// than embedded in one query.
+  static Future<List<OwnerBooking>> fetchOwnerBookings() async {
+    final properties = await PropertyRepository.fetchMine();
+    if (properties.isEmpty) return [];
+    final propertyById = {for (final p in properties) p.id: p};
+    final rows = await _client
+        .from('bookings')
+        .select('id, property_id, user_id, scheduled_at')
+        .inFilter('property_id', propertyById.keys.toList())
+        .order('scheduled_at', ascending: false);
+    final bookingRows = (rows as List).cast<Map<String, dynamic>>();
+    if (bookingRows.isEmpty) return [];
+
+    final renterIds = bookingRows
+        .map((r) => r['user_id'] as String)
+        .toSet()
+        .toList();
+    final profileRows = await _client
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .inFilter('id', renterIds);
+    final profileById = {
+      for (final p in profileRows as List)
+        (p as Map<String, dynamic>)['id'] as String: p,
+    };
+
+    return bookingRows.map((row) {
+      final property = propertyById[row['property_id']]!;
+      final profile = profileById[row['user_id']];
+      final name = profile?['name'] as String?;
+      return OwnerBooking(
+        id: row['id'] as String,
+        propertyId: property.id,
+        propertyTitle: property.title,
+        propertyImageUrl: property.imageUrl,
+        scheduledAt: DateTime.parse(row['scheduled_at'] as String),
+        renterName: name?.isNotEmpty == true ? name! : 'ຜູ້ໃຊ້',
+        renterAvatarUrl: profile?['avatar_url'] as String?,
+      );
+    }).toList();
+  }
+
+  /// Reviews on any of the current owner's listings — the same
+  /// publicly-visible rows any visitor would see (hidden reviews stay
+  /// hidden), newest first.
+  static Future<List<Review>> fetchOwnerReviews() async {
+    final properties = await PropertyRepository.fetchMine();
+    if (properties.isEmpty) return [];
+    final rows = await _client
+        .from('reviews')
+        .select('*, profiles(name, avatar_url)')
+        .inFilter('property_id', properties.map((p) => p.id).toList())
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((row) => Review.fromMap(row as Map<String, dynamic>))
+        .toList();
   }
 }

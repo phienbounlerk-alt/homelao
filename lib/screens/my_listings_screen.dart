@@ -90,6 +90,41 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     }
   }
 
+  Future<void> _toggleRented(Property property, bool value) async {
+    final i = _properties.indexWhere((p) => p.id == property.id);
+    if (i == -1) return;
+    setState(() => _properties[i] = property.withRented(value));
+    try {
+      await PropertyRepository.setRented(property.id, value);
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _properties[i] = property);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ອັບເດດສະຖານະບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
+  Future<void> _renew(Property property) async {
+    final i = _properties.indexWhere((p) => p.id == property.id);
+    if (i == -1) return;
+    try {
+      final newExpiry = await PropertyRepository.renew(property.id);
+      if (!mounted) return;
+      setState(() => _properties[i] = property.withExpiry(newExpiry));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ຕໍ່ອາຍຸປະກາດແລ້ວ')),
+      );
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ຕໍ່ອາຍຸບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -269,7 +304,110 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                   ],
                                 ),
                               ),
-                            if (property.status == 'approved')
+                            if (property.status == 'approved') ...[
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      property.isRented
+                                          ? 'ເຊົ່າແລ້ວ'
+                                          : 'ຫ້ອງວ່າງ',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: property.isRented
+                                            ? AppColors.primaryGreen
+                                            : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: property.isRented,
+                                      onChanged: (v) =>
+                                          _toggleRented(property, v),
+                                      activeThumbColor: AppColors.primaryGreen,
+                                    ),
+                                    const Spacer(),
+                                    if (property.expiresAt != null)
+                                      _ExpiryLabel(
+                                        expiresAt: property.expiresAt!,
+                                      ),
+                                    TextButton(
+                                      onPressed: () => _renew(property),
+                                      child: Text(
+                                        'ຕໍ່ອາຍຸ',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => Navigator.of(context)
+                                          .push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  PostListingScreen(
+                                                    existing: property,
+                                                  ),
+                                            ),
+                                          )
+                                          .then((_) => _load()),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            AppColors.primaryGreen,
+                                        side: BorderSide(
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.edit_rounded,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'ແກ້ໄຂ',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () =>
+                                          _confirmDelete(property),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.redAccent,
+                                        side: const BorderSide(
+                                          color: Colors.redAccent,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'ລຶບ',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: property.isFeaturedNow
@@ -323,6 +461,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                         ),
                                       ),
                               ),
+                            ],
                           ],
                         );
                       },
@@ -330,6 +469,28 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ExpiryLabel extends StatelessWidget {
+  const _ExpiryLabel({required this.expiresAt});
+
+  final DateTime expiresAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysLeft = expiresAt.difference(DateTime.now()).inDays;
+    final expiringSoon = daysLeft <= 7;
+    return Text(
+      daysLeft <= 0
+          ? 'ໝົດອາຍຸແລ້ວ'
+          : 'ໝົດອາຍຸໃນ $daysLeft ວັນ',
+      style: TextStyle(
+        fontSize: 11.5,
+        fontWeight: FontWeight.w600,
+        color: expiringSoon ? Colors.redAccent : AppColors.textSecondary,
       ),
     );
   }

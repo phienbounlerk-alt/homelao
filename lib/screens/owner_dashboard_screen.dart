@@ -4,6 +4,9 @@ import '../data/owner_dashboard_repository.dart';
 import '../models/daily_event.dart';
 import '../models/owner_dashboard_summary.dart';
 import '../theme/app_theme.dart';
+import 'manage_bookings_screen.dart';
+import 'manage_messages_screen.dart';
+import 'manage_reviews_screen.dart';
 import 'post_listing_screen.dart';
 
 enum _ChartMetric { views, favorites, phoneClicks, messages, bookings }
@@ -165,7 +168,88 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               data: OwnerDashboardRepository.resample(_daily, _period),
               metric: _metric,
             ),
+            const SizedBox(height: 24),
+            Text(
+              'ຈັດການ',
+              style: TextStyle(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _ManagementTile(
+              icon: Icons.event_available_rounded,
+              label: 'ການນັດເບິ່ງຫ້ອງ',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManageBookingsScreen()),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _ManagementTile(
+              icon: Icons.chat_bubble_rounded,
+              label: 'ຂໍ້ຄວາມຈາກຜູ້ເຊົ່າ',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManageMessagesScreen()),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _ManagementTile(
+              icon: Icons.star_rounded,
+              label: 'ຣີວິວຂອງຊັບສິນ',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManageReviewsScreen()),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagementTile extends StatelessWidget {
+  const _ManagementTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.primaryGreen),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );
