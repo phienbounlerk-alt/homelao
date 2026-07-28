@@ -31,6 +31,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   final _bathsController = TextEditingController();
   final _areaController = TextEditingController();
   final _descController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String? _selectedType;
   final List<String> _photos = [];
@@ -68,6 +69,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
     _bathsController.text = existing.baths.toString();
     _areaController.text = existing.areaSqm.toString();
     _descController.text = existing.description;
+    _phoneController.text = existing.phoneNumber ?? '';
     _parking = existing.parking;
     _petFriendly = existing.petFriendly;
     _photos.addAll(existing.photos.isNotEmpty ? existing.photos : [existing.imageUrl]);
@@ -84,6 +86,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
     _bathsController.dispose();
     _areaController.dispose();
     _descController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -237,6 +240,9 @@ class _PostListingScreenState extends State<PostListingScreen> {
           lng: _lng,
           parking: _parking,
           petFriendly: _petFriendly,
+          phoneNumber: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
         );
         AnalyticsRepository.track('listing_resubmitted', {
           'category': _selectedType,
@@ -259,6 +265,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
           'pet_friendly': _petFriendly,
           'landlord_name': ?landlordName,
           'landlord_avatar_url': ?landlordAvatarUrl,
+          if (_phoneController.text.trim().isNotEmpty)
+            'phone_number': _phoneController.text.trim(),
           if (_lat != null) 'lat': _lat,
           if (_lng != null) 'lng': _lng,
         });
@@ -523,6 +531,14 @@ class _PostListingScreenState extends State<PostListingScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      const _FieldLabel('ເບີໂທຕິດຕໍ່ (ບໍ່ບັງຄັບ)'),
+                      const SizedBox(height: 8),
+                      _FormInput(
+                        controller: _phoneController,
+                        hint: 'ຕົວຢ່າງ: 02012345678',
+                        keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 8),
                       Row(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/analytics_repository.dart';
 import '../data/conversation_repository.dart';
 import '../data/favorites_store.dart';
@@ -37,6 +38,21 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     AnalyticsRepository.track('property_viewed', {
       'property_id': widget.property.id,
     });
+  }
+
+  Future<void> _callOwner(String phone) async {
+    AnalyticsRepository.track('phone_click', {
+      'property_id': widget.property.id,
+    });
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: phone));
+    } catch (e, st) {
+      Sentry.captureException(e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ໂທອອກບໍ່ສຳເລັດ — ກະລຸນາລອງໃໝ່')),
+      );
+    }
   }
 
   @override
@@ -357,6 +373,28 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   ],
                                 ),
                               ),
+                              if (property.phoneNumber != null &&
+                                  property.phoneNumber!.isNotEmpty)
+                                Material(
+                                  color: AppColors.secondaryGreen,
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () =>
+                                        _callOwner(property.phoneNumber!),
+                                    child: Tooltip(
+                                      message: 'ໂທຫາເຈົ້າຂອງ',
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Icon(
+                                          Icons.call_rounded,
+                                          size: 18,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

@@ -250,6 +250,7 @@ class PropertyRepository {
     double? lng,
     bool parking = false,
     bool petFriendly = false,
+    String? phoneNumber,
   }) async {
     await _client
         .from('properties')
@@ -266,6 +267,7 @@ class PropertyRepository {
           'status': 'pending',
           'parking': parking,
           'pet_friendly': petFriendly,
+          'phone_number': phoneNumber,
           'lat': ?lat,
           'lng': ?lng,
         })

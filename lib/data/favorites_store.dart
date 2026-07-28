@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'analytics_repository.dart';
 
 /// App-wide favorited-listing state for the signed-in user, backed by the
 /// `favorites` table. A single shared instance so the heart toggle on a
@@ -64,6 +65,7 @@ class FavoritesStore extends ChangeNotifier {
           'user_id': userId,
           'property_id': propertyId,
         });
+        AnalyticsRepository.track('favorited', {'property_id': propertyId});
       }
       return true;
     } catch (e, st) {
