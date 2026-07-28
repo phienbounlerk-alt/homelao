@@ -537,14 +537,23 @@ class _TrendChart extends StatelessWidget {
                     ),
                     duration: const Duration(milliseconds: 400),
                     curve: Curves.easeOutCubic,
+                    // A fixed max width keeps a bar looking like a bar even
+                    // when there are only one or two buckets — without it,
+                    // a lone bar stretches to fill the whole Expanded slot
+                    // and reads as a solid block rather than a chart.
                     builder: (context, heightFactor, _) =>
                         FractionallySizedBox(
                           heightFactor: heightFactor,
                           alignment: Alignment.bottomCenter,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen,
-                              borderRadius: BorderRadius.circular(4),
+                          child: Align(
+                            child: SizedBox(
+                              width: 32,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
                             ),
                           ),
                         ),
