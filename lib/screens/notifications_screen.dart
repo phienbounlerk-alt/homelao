@@ -5,6 +5,9 @@ import '../data/property_repository.dart';
 import '../models/app_notification.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_state.dart';
+import 'manage_bookings_screen.dart';
+import 'manage_messages_screen.dart';
+import 'manage_reviews_screen.dart';
 import 'property_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -39,6 +42,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _openNotification(AppNotification n) async {
     if (!n.read) NotificationRepository.markRead(n.id);
+    // Owner-facing types open the screen the owner actually acts from —
+    // sending them to the property's public detail page would be
+    // especially unhelpful for a message, which can't even be read there.
+    switch (n.type) {
+      case 'new_booking':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ManageBookingsScreen()));
+        return;
+      case 'new_message':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ManageMessagesScreen()));
+        return;
+      case 'new_review':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ManageReviewsScreen()));
+        return;
+    }
     final propertyId = n.relatedPropertyId;
     if (propertyId == null) return;
     try {
