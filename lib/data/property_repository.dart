@@ -303,6 +303,27 @@ class PropertyRepository {
     await _client.from('properties').delete().eq('id', id);
   }
 
+  /// Owner-only occupancy toggle — goes through a dedicated RPC rather than
+  /// a plain update because the general owner-update RLS policy forces
+  /// `status`/`verified` back into moderation on every write, which is
+  /// wrong for a lightweight status flip like this one.
+  static Future<void> setRented(String id, bool isRented) async {
+    await _client.rpc(
+      'toggle_property_rented',
+      params: {'p_property_id': id, 'p_is_rented': isRented},
+    );
+  }
+
+  /// Resets the listing's expiry to 90 days from now. Returns the new
+  /// expiry so the caller can update its local state without refetching.
+  static Future<DateTime> renew(String id) async {
+    final result = await _client.rpc(
+      'renew_property_listing',
+      params: {'p_property_id': id},
+    );
+    return DateTime.parse(result as String);
+  }
+
   /// Listings the current user has favorited.
   static Future<List<Property>> fetchSaved() async {
     final userId = _client.auth.currentUser?.id;

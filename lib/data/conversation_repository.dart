@@ -100,8 +100,10 @@ class ConversationRepository {
   }
 
   static Future<void> sendMessage(String conversationId, String text) async {
+    final userId = _client.auth.currentUser!.id;
     await _client.from('messages').insert({
       'conversation_id': conversationId,
+      'sender_id': userId,
       'from_me': true,
       'text': text,
     });

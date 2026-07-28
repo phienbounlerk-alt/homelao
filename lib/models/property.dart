@@ -28,6 +28,9 @@ class Property {
     this.petFriendly = false,
     this.lat,
     this.lng,
+    this.isRented = false,
+    this.phoneNumber,
+    this.expiresAt,
   });
 
   /// Supabase-issued row id (`properties.id`).
@@ -66,6 +69,11 @@ class Property {
       petFriendly: map['pet_friendly'] as bool? ?? false,
       lat: (map['lat'] as num?)?.toDouble(),
       lng: (map['lng'] as num?)?.toDouble(),
+      isRented: map['is_rented'] as bool? ?? false,
+      phoneNumber: map['phone_number'] as String?,
+      expiresAt: map['expires_at'] != null
+          ? DateTime.parse(map['expires_at'] as String)
+          : null,
     );
   }
 
@@ -105,6 +113,16 @@ class Property {
   final double? lat;
   final double? lng;
 
+  /// Owner-togglable occupancy status — feeds the dashboard's occupancy
+  /// rate; has no effect on search visibility.
+  final bool isRented;
+
+  /// Contact number shown to renters via the "call owner" action.
+  final String? phoneNumber;
+
+  /// When this listing stops being considered active for renewal purposes.
+  final DateTime? expiresAt;
+
   bool get hasCoordinates => lat != null && lng != null;
 
   /// Photos to actually render — never empty, even for old rows.
@@ -139,6 +157,9 @@ class Property {
     petFriendly: petFriendly,
     lat: lat,
     lng: lng,
+    isRented: isRented,
+    phoneNumber: phoneNumber,
+    expiresAt: expiresAt,
   );
 
   /// Whether the paid featured-listing boost is still within its window —
