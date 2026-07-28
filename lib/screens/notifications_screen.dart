@@ -72,6 +72,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'moving_accepted' => Icons.local_shipping_rounded,
     'moving_in_progress' => Icons.local_shipping_rounded,
     'moving_completed' => Icons.check_circle_rounded,
+    'new_booking' => Icons.event_available_rounded,
+    'new_message' => Icons.chat_bubble_rounded,
+    'new_review' => Icons.star_rounded,
     _ => Icons.notifications_rounded,
   };
 
@@ -85,6 +88,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'moving_accepted' => AppColors.primaryGreen,
     'moving_in_progress' => AppColors.primaryGreen,
     'moving_completed' => AppColors.primaryGreen,
+    'new_booking' => AppColors.primaryGreen,
+    'new_message' => AppColors.primaryGreen,
+    'new_review' => const Color(0xFFD97706),
     // Anything unmapped falls back to a neutral color rather than green,
     // so a future notification type can't accidentally read as "good news"
     // by default the way rejections did before this fix.

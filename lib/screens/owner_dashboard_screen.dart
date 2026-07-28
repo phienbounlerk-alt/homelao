@@ -301,8 +301,13 @@ class _KpiGrid extends StatelessWidget {
       crossAxisSpacing: 10,
       childAspectRatio: 1.5,
       children: [
-        for (final c in cards)
-          _KpiCard(label: c.$1, value: c.$2, icon: c.$3),
+        for (var i = 0; i < cards.length; i++)
+          _KpiCard(
+            label: cards[i].$1,
+            value: cards[i].$2,
+            icon: cards[i].$3,
+            index: i,
+          ),
       ],
     );
   }
@@ -313,14 +318,32 @@ class _KpiCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    required this.index,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 350 + index * 60),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 10),
+          child: child,
+        ),
+      ),
+      child: _kpiCardContent(),
+    );
+  }
+
+  Widget _kpiCardContent() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
