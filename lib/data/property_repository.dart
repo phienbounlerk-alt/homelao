@@ -265,6 +265,13 @@ class PropertyRepository {
           'area_sqm': areaSqm,
           'description': description,
           'status': 'pending',
+          // The owner-update RLS policy's with_check requires verified =
+          // false on the resulting row alongside status = 'pending' — an
+          // edit must go back through full moderation, not just approval.
+          // Omitting this leaves verified untouched, so any edit by an
+          // owner whose listing already carries the verified badge is
+          // silently rejected by RLS (42501) — caught via live testing.
+          'verified': false,
           'parking': parking,
           'pet_friendly': petFriendly,
           'phone_number': phoneNumber,
