@@ -81,7 +81,8 @@ class OwnerDashboardRepository {
         .from('bookings')
         .select('id, property_id, user_id, scheduled_at')
         .inFilter('property_id', propertyById.keys.toList())
-        .order('scheduled_at', ascending: false);
+        .order('scheduled_at', ascending: false)
+        .limit(200);
     final bookingRows = (rows as List).cast<Map<String, dynamic>>();
     if (bookingRows.isEmpty) return [];
 
@@ -124,7 +125,8 @@ class OwnerDashboardRepository {
         .from('reviews')
         .select('*, profiles(name, avatar_url)')
         .inFilter('property_id', properties.map((p) => p.id).toList())
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false)
+        .limit(200);
     return (rows as List)
         .map((row) => Review.fromMap(row as Map<String, dynamic>))
         .toList();
