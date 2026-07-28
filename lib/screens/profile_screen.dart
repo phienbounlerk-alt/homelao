@@ -15,6 +15,7 @@ import 'help_center_screen.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
 import 'my_listings_screen.dart';
+import 'owner_dashboard_screen.dart';
 import 'owner_verification_screen.dart';
 import 'payment_methods_screen.dart';
 import 'saved_properties_screen.dart';
@@ -41,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   static const _baseMenuItems = [
     (Icons.home_work_rounded, 'ລາຍການຂອງຂ້ອຍ'),
+    (Icons.dashboard_rounded, 'ແດຊບອດເຈົ້າຂອງ'),
     (Icons.favorite_rounded, 'ຊັບສິນທີ່ບັນທຶກ'),
     (Icons.chat_bubble_rounded, 'ຂໍ້ຄວາມ'),
     (Icons.event_available_rounded, 'ປະຫວັດການຈອງ'),
@@ -150,6 +152,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+      return;
+    }
+    if (label == 'ແດຊບອດເຈົ້າຂອງ') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()));
       return;
     }
     if (label == 'ຊັບສິນທີ່ບັນທຶກ') {
