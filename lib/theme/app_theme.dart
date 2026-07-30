@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kThemeModeKey = 'app_theme_mode';
@@ -91,9 +90,13 @@ class AppTheme {
         surface: background,
       ),
       scaffoldBackgroundColor: background,
-      textTheme: GoogleFonts.notoSansLaoTextTheme(
-        isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
-      ).apply(bodyColor: textPrimary, displayColor: textPrimary),
+      fontFamily: 'Noto Sans Lao',
+      textTheme: (isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme)
+          .apply(
+            fontFamily: 'Noto Sans Lao',
+            bodyColor: textPrimary,
+            displayColor: textPrimary,
+          ),
     );
   }
 

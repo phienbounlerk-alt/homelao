@@ -97,13 +97,17 @@ class _NavItem extends StatelessWidget {
             children: [
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
-                style: TextStyle(color: color),
+                style: DefaultTextStyle.of(context).style.copyWith(color: color),
                 child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(height: 3),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
-                style: TextStyle(
+                // Built from the ambient style (not a bare TextStyle) so the
+                // theme's fontFamily carries through — a plain TextStyle(...)
+                // here replaces the inherited default entirely and silently
+                // drops back to the platform font instead of Noto Sans Lao.
+                style: DefaultTextStyle.of(context).style.copyWith(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                   color: color,

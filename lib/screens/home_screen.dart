@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/notification_prefs_repository.dart';
 import '../data/notification_repository.dart';
 import '../data/property_repository.dart';
@@ -14,6 +15,7 @@ import '../widgets/feature_chip.dart';
 import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
+import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
 import 'moving_service_screen.dart';
 import 'notifications_screen.dart';
@@ -517,10 +519,12 @@ class _TopBarState extends State<_TopBar> {
           },
         ),
         const SizedBox(width: 16),
-        const CircleAvatar(
+        CircleAvatar(
           radius: 18,
           backgroundImage: NetworkImage(
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80',
+            Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url']
+                    as String? ??
+                defaultAvatarUrl,
           ),
         ),
       ],
