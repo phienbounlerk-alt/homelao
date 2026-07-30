@@ -15,7 +15,6 @@ import '../widgets/feature_chip.dart';
 import '../widgets/error_state.dart';
 import '../widgets/location_chip.dart';
 import '../widgets/property_card.dart';
-import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
 import 'moving_service_screen.dart';
 import 'notifications_screen.dart';
@@ -519,13 +518,30 @@ class _TopBarState extends State<_TopBar> {
           },
         ),
         const SizedBox(width: 16),
-        CircleAvatar(
-          radius: 18,
-          backgroundImage: NetworkImage(
-            Supabase.instance.client.auth.currentUser?.userMetadata?['avatar_url']
-                    as String? ??
-                defaultAvatarUrl,
-          ),
+        Builder(
+          builder: (context) {
+            final user = Supabase.instance.client.auth.currentUser;
+            final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
+            // A guest/anonymous session, or a real account that never set
+            // an avatar, gets a neutral placeholder icon rather than a
+            // stock photo of an unrelated person.
+            final hasRealAvatar =
+                (user?.isAnonymous ?? true) == false &&
+                avatarUrl != null &&
+                avatarUrl.isNotEmpty;
+            return CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.secondaryGreen,
+              backgroundImage: hasRealAvatar ? NetworkImage(avatarUrl) : null,
+              child: hasRealAvatar
+                  ? null
+                  : Icon(
+                      Icons.person_rounded,
+                      size: 20,
+                      color: AppColors.primaryGreen,
+                    ),
+            );
+          },
         ),
       ],
     );

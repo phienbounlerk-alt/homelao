@@ -303,19 +303,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 34,
-                  backgroundColor: AppColors.secondaryGreen,
-                  backgroundImage: NetworkImage(
-                    Supabase
-                                .instance
-                                .client
-                                .auth
-                                .currentUser
-                                ?.userMetadata?['avatar_url']
-                            as String? ??
-                        defaultAvatarUrl,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final user = Supabase.instance.client.auth.currentUser;
+                    final avatarUrl = user?.userMetadata?['avatar_url'] as String?;
+                    // A guest/anonymous session, or a real account that never
+                    // set an avatar, gets a neutral placeholder icon rather
+                    // than a stock photo of an unrelated person.
+                    final hasRealAvatar =
+                        (user?.isAnonymous ?? true) == false &&
+                        avatarUrl != null &&
+                        avatarUrl.isNotEmpty;
+                    return CircleAvatar(
+                      radius: 34,
+                      backgroundColor: AppColors.secondaryGreen,
+                      backgroundImage: hasRealAvatar
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: hasRealAvatar
+                          ? null
+                          : Icon(
+                              Icons.person_rounded,
+                              size: 34,
+                              color: AppColors.primaryGreen,
+                            ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -324,12 +337,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       final user = Supabase.instance.client.auth.currentUser;
                       final isAnon = user?.isAnonymous ?? true;
                       final name = isAnon
-                          ? 'ແຂກ'
+                          ? 'ຜູ້ໃຊ້'
                           : (user?.userMetadata?['name'] as String?)
                                     ?.isNotEmpty ==
                                 true
                           ? user!.userMetadata!['name'] as String
-                          : (user?.email ?? 'ແຂກ');
+                          : (user?.email ?? 'ຜູ້ໃຊ້');
                       final subtitle = isAnon
                           ? 'ເຂົ້າໃຊ້ແບບບໍ່ຕ້ອງລົງທະບຽນ'
                           : (user?.email ?? '');
